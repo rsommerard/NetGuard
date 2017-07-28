@@ -50,13 +50,13 @@ int check_udp_session(const struct arguments *args, struct ng_session *s,
     int timeout = get_udp_timeout(&s->udp, sessions, maxsessions);
 
     if (s->udp.state == UDP_ACTIVE && s->udp.time + timeout < now) {
-        log_android(ANDROID_LOG_WARN, "UDP idle %d/%d sec state %d from %s/%u to %s/%u", now - s->udp.time, timeout, s->udp.state, source, ntohs(s->udp.source), dest, ntohs(s->udp.dest));
+        // log_android(ANDROID_LOG_WARN, "UDP idle %d/%d sec state %d from %s/%u to %s/%u", now - s->udp.time, timeout, s->udp.state, source, ntohs(s->udp.source), dest, ntohs(s->udp.dest));
         s->udp.state = UDP_FINISHING;
     }
 
     // Check finished sessions
     if (s->udp.state == UDP_FINISHING) {
-        log_android(ANDROID_LOG_INFO, "UDP close from %s/%u to %s/%u socket %d", source, ntohs(s->udp.source), dest, ntohs(s->udp.dest), s->socket);
+        // log_android(ANDROID_LOG_INFO, "UDP close from %s/%u to %s/%u socket %d", source, ntohs(s->udp.source), dest, ntohs(s->udp.dest), s->socket);
 
         if (close(s->socket)) {
             log_android(ANDROID_LOG_ERROR, "UDP close %d error %d: %s", s->socket, errno, strerror(errno));
@@ -112,13 +112,13 @@ void check_udp_socket(const struct arguments *args, const struct epoll_event *ev
 
             if (bytes < 0) {
                 // Socket error
-                log_android(ANDROID_LOG_WARN, "UDP recv error %d: %s", errno, strerror(errno));
+                // log_android(ANDROID_LOG_WARN, "UDP recv error %d: %s", errno, strerror(errno));
 
                 if (errno != EINTR && errno != EAGAIN) {
                     s->udp.state = UDP_FINISHING;
                 }
             } else if (bytes == 0) {
-                log_android(ANDROID_LOG_WARN, "UDP recv eof");
+                // log_android(ANDROID_LOG_WARN, "UDP recv eof");
                 s->udp.state = UDP_FINISHING;
 
             } else {
@@ -131,7 +131,7 @@ void check_udp_socket(const struct arguments *args, const struct epoll_event *ev
                     inet_ntop(AF_INET6, &s->udp.daddr.ip6, dest, sizeof(dest));
                 }
 
-                log_android(ANDROID_LOG_INFO, "UDP recv bytes %d from %s/%u for tun", bytes, dest, ntohs(s->udp.dest));
+                // log_android(ANDROID_LOG_INFO, "UDP recv bytes %d from %s/%u for tun", bytes, dest, ntohs(s->udp.dest));
 
                 s->udp.received += bytes;
 
@@ -205,7 +205,7 @@ void block_udp(const struct arguments *args,
         inet_ntop(AF_INET6, &ip6->ip6_dst, dest, sizeof(dest));
     }
 
-    log_android(ANDROID_LOG_INFO, "UDP blocked session from %s/%u to %s/%u", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest));
+    // log_android(ANDROID_LOG_INFO, "UDP blocked session from %s/%u to %s/%u", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest));
 
     // Register session
     struct ng_session *s = malloc(sizeof(struct ng_session));
@@ -271,13 +271,13 @@ jboolean handle_udp(const struct arguments *args,
     }
 
     if (cur != NULL && cur->udp.state != UDP_ACTIVE) {
-        log_android(ANDROID_LOG_INFO, "UDP ignore session from %s/%u to %s/%u state %d", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest), cur->udp.state);
+        // log_android(ANDROID_LOG_INFO, "UDP ignore session from %s/%u to %s/%u state %d", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest), cur->udp.state);
         return 0;
     }
 
     // Create new session if needed
     if (cur == NULL) {
-        log_android(ANDROID_LOG_INFO, "UDP new session from %s/%u to %s/%u", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest));
+        // log_android(ANDROID_LOG_INFO, "UDP new session from %s/%u to %s/%u", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest));
 
         // Register session
         struct ng_session *s = malloc(sizeof(struct ng_session));
@@ -321,7 +321,7 @@ jboolean handle_udp(const struct arguments *args,
             return 0;
         }
 
-        log_android(ANDROID_LOG_DEBUG, "UDP socket %d", s->socket);
+        // log_android(ANDROID_LOG_DEBUG, "UDP socket %d", s->socket);
 
         // Monitor events
         memset(&s->ev, 0, sizeof(struct epoll_event));
@@ -345,7 +345,7 @@ jboolean handle_udp(const struct arguments *args,
         uint16_t qclass;
 
         if (get_dns_query(args, &cur->udp, data, datalen, &qtype, &qclass, qname) >= 0) {
-            log_android(ANDROID_LOG_DEBUG, "DNS query qtype %d qclass %d name %s", qtype, qclass, qname);
+            // log_android(ANDROID_LOG_DEBUG, "DNS query qtype %d qclass %d name %s", qtype, qclass, qname);
 
             if (0)
                 if (check_domain(args, &cur->udp, data, datalen, qclass, qtype, qname)) {
@@ -372,7 +372,7 @@ jboolean handle_udp(const struct arguments *args,
         }
     }
 
-    log_android(ANDROID_LOG_INFO, "UDP forward from tun %s/%u to %s/%u data %d", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest), datalen);
+    // log_android(ANDROID_LOG_INFO, "UDP forward from tun %s/%u to %s/%u data %d", source, ntohs(udphdr->source), dest, ntohs(udphdr->dest), datalen);
 
     cur->udp.time = time(NULL);
 
@@ -394,7 +394,7 @@ jboolean handle_udp(const struct arguments *args,
         }
     } else {
         rversion = (strstr(redirect->raddr, ":") == NULL ? 4 : 6);
-        log_android(ANDROID_LOG_WARN, "UDP%d redirect to %s/%u", rversion, redirect->raddr, redirect->rport);
+        // log_android(ANDROID_LOG_WARN, "UDP%d redirect to %s/%u", rversion, redirect->raddr, redirect->rport);
 
         if (rversion == 4) {
             addr4.sin_family = AF_INET;
@@ -450,7 +450,7 @@ int open_udp_socket(const struct arguments *args,
         uint32_t broadcast4 = INADDR_BROADCAST;
 
         if (memcmp(&cur->daddr.ip4, &broadcast4, sizeof(broadcast4)) == 0) {
-            log_android(ANDROID_LOG_WARN, "UDP4 broadcast");
+            // log_android(ANDROID_LOG_WARN, "UDP4 broadcast");
             int on = 1;
 
             if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &on, sizeof(on))) {
@@ -460,7 +460,7 @@ int open_udp_socket(const struct arguments *args,
     } else {
         // http://man7.org/linux/man-pages/man7/ipv6.7.html
         if (*((uint8_t *) &cur->daddr.ip6) == 0xFF) {
-            log_android(ANDROID_LOG_WARN, "UDP6 broadcast");
+            // log_android(ANDROID_LOG_WARN, "UDP6 broadcast");
 
             int loop = 1; // true
 
@@ -579,7 +579,7 @@ ssize_t write_udp(const struct arguments *args, const struct udp_session *cur,
               cur->version == 4 ? &cur->daddr.ip4 : &cur->daddr.ip6, dest, sizeof(dest));
 
     // Send packet
-    log_android(ANDROID_LOG_DEBUG, "UDP sending to tun %d from %s/%u to %s/%u data %u", args->tun, dest, ntohs(cur->dest), source, ntohs(cur->source), len);
+    // log_android(ANDROID_LOG_DEBUG, "UDP sending to tun %d from %s/%u to %s/%u data %u", args->tun, dest, ntohs(cur->dest), source, ntohs(cur->source), len);
 
     ssize_t res = write(args->tun, buffer, len);
 
@@ -589,7 +589,7 @@ ssize_t write_udp(const struct arguments *args, const struct udp_session *cur,
             write_pcap_rec(buffer, (size_t) res);
         }
     } else {
-        log_android(ANDROID_LOG_WARN, "UDP write error %d: %s", errno, strerror(errno));
+        // log_android(ANDROID_LOG_WARN, "UDP write error %d: %s", errno, strerror(errno));
     }
 
     free(buffer);

@@ -54,7 +54,7 @@ void clear() {
 
 void *handle_events(void *a) {
     struct arguments *args = (struct arguments *) a;
-    log_android(ANDROID_LOG_WARN, "Start events tun=%d thread %x", args->tun, thread_id);
+    // log_android(ANDROID_LOG_WARN, "Start events tun=%d thread %x", args->tun, thread_id);
 
     // Attach to Java
     JNIEnv *env;
@@ -72,8 +72,8 @@ void *handle_events(void *a) {
     struct rlimit rlim;
 
     if (getrlimit(RLIMIT_NOFILE, &rlim)) {
-        log_android(ANDROID_LOG_WARN, "getrlimit error %d: %s", errno, strerror(errno));
-    else {
+        // log_android(ANDROID_LOG_WARN, "getrlimit error %d: %s", errno, strerror(errno));
+    } else {
         maxsessions = (int) (rlim.rlim_cur * SESSION_LIMIT / 100);
 
         if (maxsessions > SESSION_MAX) {
@@ -125,7 +125,7 @@ void *handle_events(void *a) {
     long long last_check = 0;
 
     while (!stopping) {
-        log_android(ANDROID_LOG_DEBUG, "Loop thread %x", thread_id);
+        // log_android(ANDROID_LOG_DEBUG, "Loop thread %x", thread_id);
 
         int recheck = 0;
         int timeout = EPOLL_TIMEOUT;
@@ -229,10 +229,10 @@ void *handle_events(void *a) {
             }
         } else {
             recheck = 1;
-            log_android(ANDROID_LOG_DEBUG, "Skipped session checks");
+            // log_android(ANDROID_LOG_DEBUG, "Skipped session checks");
         }
 
-        log_android(ANDROID_LOG_DEBUG, "sessions ICMP %d UDP %d TCP %d max %d/%d timeout %d recheck %d", isessions, usessions, tsessions, sessions, maxsessions, timeout, recheck);
+        // log_android(ANDROID_LOG_DEBUG, "sessions ICMP %d UDP %d TCP %d max %d/%d timeout %d recheck %d", isessions, usessions, tsessions, sessions, maxsessions, timeout, recheck);
 
         // Poll
         struct epoll_event ev[EPOLL_EVENTS];
@@ -241,7 +241,7 @@ void *handle_events(void *a) {
 
         if (ready < 0) {
             if (errno == EINTR) {
-                log_android(ANDROID_LOG_DEBUG, "epoll interrupted tun %d thread %x", args->tun, thread_id);
+                // log_android(ANDROID_LOG_DEBUG, "epoll interrupted tun %d thread %x", args->tun, thread_id);
                 continue;
             } else {
                 log_android(ANDROID_LOG_ERROR, "epoll tun %d thread %x error %d: %s", args->tun, thread_id, errno, strerror(errno));
@@ -251,7 +251,7 @@ void *handle_events(void *a) {
         }
 
         if (ready == 0) {
-            log_android(ANDROID_LOG_DEBUG, "epoll timeout");
+            // log_android(ANDROID_LOG_DEBUG, "epoll timeout");
         } else {
 
             if (pthread_mutex_lock(&lock)) {
@@ -267,16 +267,16 @@ void *handle_events(void *a) {
                     uint8_t buffer[1];
 
                     if (read(pipefds[0], buffer, 1) < 0) {
-                        log_android(ANDROID_LOG_WARN, "Read pipe error %d: %s", errno, strerror(errno));
+                        // log_android(ANDROID_LOG_WARN, "Read pipe error %d: %s", errno, strerror(errno));
                     } else {
-                        log_android(ANDROID_LOG_WARN, "Read pipe");
+                        // log_android(ANDROID_LOG_WARN, "Read pipe");
                     }
 
                     break;
 
                 } else if (ev[i].data.ptr == NULL) {
                     // Check upstream
-                    log_android(ANDROID_LOG_DEBUG, "epoll ready %d/%d in %d out %d err %d hup %d", i, ready, (ev[i].events & EPOLLIN) != 0, (ev[i].events & EPOLLOUT) != 0, (ev[i].events & EPOLLERR) != 0, (ev[i].events & EPOLLHUP) != 0);
+                    // log_android(ANDROID_LOG_DEBUG, "epoll ready %d/%d in %d out %d err %d hup %d", i, ready, (ev[i].events & EPOLLIN) != 0, (ev[i].events & EPOLLOUT) != 0, (ev[i].events & EPOLLERR) != 0, (ev[i].events & EPOLLHUP) != 0);
 
                     while (!error && is_readable(args->tun))
                         if (check_tun(args, &ev[i], epoll_fd, sessions, maxsessions) < 0) {
@@ -285,7 +285,7 @@ void *handle_events(void *a) {
 
                 } else {
                     // Check downstream
-                    log_android(ANDROID_LOG_DEBUG, "epoll ready %d/%d in %d out %d err %d hup %d prot %d sock %d", i, ready, (ev[i].events & EPOLLIN) != 0, (ev[i].events & EPOLLOUT) != 0, (ev[i].events & EPOLLERR) != 0, (ev[i].events & EPOLLHUP) != 0, ((struct ng_session *) ev[i].data.ptr)->protocol, ((struct ng_session *) ev[i].data.ptr)->socket);
+                    // log_android(ANDROID_LOG_DEBUG, "epoll ready %d/%d in %d out %d err %d hup %d prot %d sock %d", i, ready, (ev[i].events & EPOLLIN) != 0, (ev[i].events & EPOLLOUT) != 0, (ev[i].events & EPOLLERR) != 0, (ev[i].events & EPOLLHUP) != 0, ((struct ng_session *) ev[i].data.ptr)->protocol, ((struct ng_session *) ev[i].data.ptr)->socket);
 
                     struct ng_session *session = (struct ng_session *) ev[i].data.ptr;
 
@@ -332,7 +332,7 @@ void *handle_events(void *a) {
     // Cleanup
     free(args);
 
-    log_android(ANDROID_LOG_WARN, "Stopped events tun=%d thread %x", args->tun, thread_id);
+    // log_android(ANDROID_LOG_WARN, "Stopped events tun=%d thread %x", args->tun, thread_id);
     thread_id = 0;
     return NULL;
 }
@@ -361,7 +361,7 @@ void check_allowed(const struct arguments *args) {
 
                 if (is_address_allowed(args, objPacket) == NULL) {
                     s->icmp.stop = 1;
-                    log_android(ANDROID_LOG_WARN, "ICMP terminate %d uid %d", s->socket, s->icmp.uid);
+                    // log_android(ANDROID_LOG_WARN, "ICMP terminate %d uid %d", s->socket, s->icmp.uid);
                 }
             }
 
@@ -381,10 +381,10 @@ void check_allowed(const struct arguments *args) {
 
                 if (is_address_allowed(args, objPacket) == NULL) {
                     s->udp.state = UDP_FINISHING;
-                    log_android(ANDROID_LOG_WARN, "UDP terminate session socket %d uid %d", s->socket, s->udp.uid);
+                    // log_android(ANDROID_LOG_WARN, "UDP terminate session socket %d uid %d", s->socket, s->udp.uid);
                 }
             } else if (s->udp.state == UDP_BLOCKED) {
-                log_android(ANDROID_LOG_WARN, "UDP remove blocked session uid %d", s->udp.uid);
+                // log_android(ANDROID_LOG_WARN, "UDP remove blocked session uid %d", s->udp.uid);
 
                 if (l == NULL) {
                     ng_session = s->next;
@@ -417,7 +417,7 @@ void check_allowed(const struct arguments *args) {
 
                 if (is_address_allowed(args, objPacket) == NULL) {
                     write_rst(args, &s->tcp);
-                    log_android(ANDROID_LOG_WARN, "TCP terminate socket %d uid %d", s->socket, s->tcp.uid);
+                    // log_android(ANDROID_LOG_WARN, "TCP terminate socket %d uid %d", s->socket, s->tcp.uid);
                 }
             }
 

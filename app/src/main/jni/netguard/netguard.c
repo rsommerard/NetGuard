@@ -48,12 +48,12 @@ jclass clsRR;
 jclass clsUsage;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-    log_android(ANDROID_LOG_INFO, "JNI load");
+    // log_android(ANDROID_LOG_INFO, "JNI load");
 
     JNIEnv *env;
 
     if ((*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_6) != JNI_OK) {
-        log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
+        // log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
         return -1;
     }
 
@@ -73,15 +73,15 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     struct rlimit rlim;
 
     if (getrlimit(RLIMIT_NOFILE, &rlim)) {
-        log_android(ANDROID_LOG_WARN, "getrlimit error %d: %s", errno, strerror(errno));
+        // log_android(ANDROID_LOG_WARN, "getrlimit error %d: %s", errno, strerror(errno));
     } else {
         rlim_t soft = rlim.rlim_cur;
         rlim.rlim_cur = rlim.rlim_max;
 
         if (setrlimit(RLIMIT_NOFILE, &rlim)) {
-            log_android(ANDROID_LOG_WARN, "setrlimit error %d: %s", errno, strerror(errno));
+            // log_android(ANDROID_LOG_WARN, "setrlimit error %d: %s", errno, strerror(errno));
         } else {
-            log_android(ANDROID_LOG_WARN, "raised file limit from %d to %d", soft, rlim.rlim_cur);
+            // log_android(ANDROID_LOG_WARN, "raised file limit from %d to %d", soft, rlim.rlim_cur);
         }
     }
 
@@ -89,14 +89,14 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 
 void JNI_OnUnload(JavaVM *vm, void *reserved) {
-    log_android(ANDROID_LOG_INFO, "JNI unload");
+    // log_android(ANDROID_LOG_INFO, "JNI unload");
 
     clear();
 
     JNIEnv *env;
 
     if ((*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_6) != JNI_OK) {
-        log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
+        // log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
     } else {
         (*env)->DeleteGlobalRef(env, clsPacket);
         (*env)->DeleteGlobalRef(env, clsRR);
@@ -143,7 +143,7 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1start(
 
     loglevel = loglevel_;
     max_tun_msg = 0;
-    log_android(ANDROID_LOG_WARN, "Starting tun %d fwd53 %d level %d thread %x", tun, fwd53, loglevel, thread_id);
+    // log_android(ANDROID_LOG_WARN, "Starting tun %d fwd53 %d level %d thread %x", tun, fwd53, loglevel, thread_id);
 
     // Set blocking
     int flags = fcntl(tun, F_GETFL, 0);
@@ -173,7 +173,7 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1start(
         int err = pthread_create(&thread_id, NULL, handle_events, (void *) args);
 
         if (err == 0) {
-            log_android(ANDROID_LOG_WARN, "Started thread %x", thread_id);
+            // log_android(ANDROID_LOG_WARN, "Started thread %x", thread_id);
         } else {
             log_android(ANDROID_LOG_ERROR, "pthread_create error %d: %s", err, strerror(err));
         }
@@ -184,19 +184,19 @@ JNIEXPORT void JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1stop(
     JNIEnv *env, jobject instance, jint tun, jboolean clr) {
     pthread_t t = thread_id;
-    log_android(ANDROID_LOG_WARN, "Stop tun %d  thread %x", tun, t);
+    // log_android(ANDROID_LOG_WARN, "Stop tun %d  thread %x", tun, t);
 
     if (t && pthread_kill(t, 0) == 0) {
-        log_android(ANDROID_LOG_WARN, "Write pipe thread %x", t);
+        // log_android(ANDROID_LOG_WARN, "Write pipe thread %x", t);
 
         if (write(pipefds[1], "x", 1) < 0) {
-            log_android(ANDROID_LOG_WARN, "Write pipe error %d: %s", errno, strerror(errno));
+            // log_android(ANDROID_LOG_WARN, "Write pipe error %d: %s", errno, strerror(errno));
         } else {
-            log_android(ANDROID_LOG_WARN, "Join thread %x", t);
+            // log_android(ANDROID_LOG_WARN, "Join thread %x", t);
             int err = pthread_join(t, NULL);
 
             if (err != 0) {
-                log_android(ANDROID_LOG_WARN, "pthread_join error %d: %s", err, strerror(err));
+                // log_android(ANDROID_LOG_WARN, "pthread_join error %d: %s", err, strerror(err));
             }
         }
 
@@ -204,9 +204,9 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1stop(
             clear();
         }
 
-        log_android(ANDROID_LOG_WARN, "Stopped thread %x", t);
+        // log_android(ANDROID_LOG_WARN, "Stopped thread %x", t);
     } else {
-        log_android(ANDROID_LOG_WARN, "Not running thread %x", t);
+        // log_android(ANDROID_LOG_WARN, "Not running thread %x", t);
     }
 }
 
@@ -307,10 +307,10 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1pcap(
             pcap_file = NULL;
         }
 
-        log_android(ANDROID_LOG_WARN, "PCAP disabled");
+        // log_android(ANDROID_LOG_WARN, "PCAP disabled");
     } else {
         const char *name = (*env)->GetStringUTFChars(env, name_, 0);
-        log_android(ANDROID_LOG_WARN, "PCAP file %s record size %d truncate @%ld", name, pcap_record_size, pcap_file_size);
+        // log_android(ANDROID_LOG_WARN, "PCAP file %s record size %d truncate @%ld", name, pcap_record_size, pcap_file_size);
 
         pcap_file = fopen(name, "ab+");
 
@@ -326,10 +326,10 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1pcap(
             long size = ftell(pcap_file);
 
             if (size == 0) {
-                log_android(ANDROID_LOG_WARN, "PCAP initialize");
+                // log_android(ANDROID_LOG_WARN, "PCAP initialize");
                 write_pcap_hdr();
             } else {
-                log_android(ANDROID_LOG_WARN, "PCAP current size %ld", size);
+                // log_android(ANDROID_LOG_WARN, "PCAP current size %ld", size);
             }
         }
 
@@ -354,7 +354,7 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(JNIEnv *env, jobject insta
     strcpy(socks5_username, username);
     strcpy(socks5_password, password);
 
-    log_android(ANDROID_LOG_WARN, "SOCKS5 %s:%d user=%s", socks5_addr, socks5_port, socks5_username);
+    // log_android(ANDROID_LOG_WARN, "SOCKS5 %s:%d user=%s", socks5_addr, socks5_port, socks5_username);
 
     (*env)->ReleaseStringUTFChars(env, addr_, addr);
     (*env)->ReleaseStringUTFChars(env, username_, username);
@@ -363,7 +363,7 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(JNIEnv *env, jobject insta
 
 JNIEXPORT void JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1done(JNIEnv *env, jobject instance) {
-    log_android(ANDROID_LOG_INFO, "Done");
+    // log_android(ANDROID_LOG_INFO, "Done");
 
     clear();
 
@@ -404,7 +404,7 @@ Java_eu_faircode_netguard_Util_is_1numeric_1address(JNIEnv *env, jclass type, js
     int err = getaddrinfo(ip, NULL, &hints, &result);
 
     if (err) {
-        log_android(ANDROID_LOG_DEBUG, "getaddrinfo(%s) error %d: %s", ip, err, gai_strerror(err));
+        // log_android(ANDROID_LOG_DEBUG, "getaddrinfo(%s) error %d: %s", ip, err, gai_strerror(err));
     } else {
         numeric = (jboolean) (result != NULL);
     }
@@ -585,7 +585,7 @@ void log_packet(const struct arguments *args, jobject jpacket) {
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
     }
 
 #endif
@@ -657,7 +657,7 @@ void dns_resolved(const struct arguments *args,
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
     }
 
 #endif
@@ -695,7 +695,7 @@ jboolean is_domain_blocked(const struct arguments *args, const char *name) {
                 (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        log_android(ANDROID_LOG_WARN, "is_domain_blocked %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "is_domain_blocked %f", mselapsed);
     }
 
 #endif
@@ -759,7 +759,7 @@ struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        log_android(ANDROID_LOG_WARN, "is_address_allowed %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "is_address_allowed %f", mselapsed);
     }
 
 #endif
@@ -882,7 +882,7 @@ jobject create_packet(const struct arguments *args,
                 (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        log_android(ANDROID_LOG_WARN, "create_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "create_packet %f", mselapsed);
     }
 
 #endif
@@ -961,7 +961,7 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
     }
 
 #endif
