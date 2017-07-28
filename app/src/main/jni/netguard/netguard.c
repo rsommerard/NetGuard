@@ -51,6 +51,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     log_android(ANDROID_LOG_INFO, "JNI load");
 
     JNIEnv *env;
+
     if ((*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_6) != JNI_OK) {
         log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
         return -1;
@@ -70,15 +71,18 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     // Raise file number limit to maximum
     struct rlimit rlim;
-    if (getrlimit(RLIMIT_NOFILE, &rlim))
+
+    if (getrlimit(RLIMIT_NOFILE, &rlim)) {
         log_android(ANDROID_LOG_WARN, "getrlimit error %d: %s", errno, strerror(errno));
-    else {
+    } else {
         rlim_t soft = rlim.rlim_cur;
         rlim.rlim_cur = rlim.rlim_max;
-        if (setrlimit(RLIMIT_NOFILE, &rlim))
+
+        if (setrlimit(RLIMIT_NOFILE, &rlim)) {
             log_android(ANDROID_LOG_WARN, "setrlimit error %d: %s", errno, strerror(errno));
-        else
+        } else {
             log_android(ANDROID_LOG_WARN, "raised file limit from %d to %d", soft, rlim.rlim_cur);
+        }
     }
 
     return JNI_VERSION_1_6;
@@ -90,9 +94,10 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
     clear();
 
     JNIEnv *env;
-    if ((*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_6) != JNI_OK)
+
+    if ((*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_6) != JNI_OK) {
         log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
-    else {
+    } else {
         (*env)->DeleteGlobalRef(env, clsPacket);
         (*env)->DeleteGlobalRef(env, clsRR);
     }
@@ -115,43 +120,46 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1init(JNIEnv *env, jobject instanc
     *socks5_password = 0;
     pcap_file = NULL;
 
-    if (pthread_mutex_init(&lock, NULL))
+    if (pthread_mutex_init(&lock, NULL)) {
         log_android(ANDROID_LOG_ERROR, "pthread_mutex_init failed");
+    }
 
     // Create signal pipe
-    if (pipe(pipefds))
+    if (pipe(pipefds)) {
         log_android(ANDROID_LOG_ERROR, "Create pipe error %d: %s", errno, strerror(errno));
-    else
+    } else
         for (int i = 0; i < 2; i++) {
             int flags = fcntl(pipefds[i], F_GETFL, 0);
-            if (flags < 0 || fcntl(pipefds[i], F_SETFL, flags | O_NONBLOCK) < 0)
-                log_android(ANDROID_LOG_ERROR, "fcntl pipefds[%d] O_NONBLOCK error %d: %s",
-                            i, errno, strerror(errno));
+
+            if (flags < 0 || fcntl(pipefds[i], F_SETFL, flags | O_NONBLOCK) < 0) {
+                log_android(ANDROID_LOG_ERROR, "fcntl pipefds[%d] O_NONBLOCK error %d: %s", i, errno, strerror(errno));
+            }
         }
 }
 
 JNIEXPORT void JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1start(
-        JNIEnv *env, jobject instance, jint tun, jboolean fwd53, jint rcode, jint loglevel_) {
+    JNIEnv *env, jobject instance, jint tun, jboolean fwd53, jint rcode, jint loglevel_) {
 
     loglevel = loglevel_;
     max_tun_msg = 0;
-    log_android(ANDROID_LOG_WARN,
-                "Starting tun %d fwd53 %d level %d thread %x",
-                tun, fwd53, loglevel, thread_id);
+    log_android(ANDROID_LOG_WARN, "Starting tun %d fwd53 %d level %d thread %x", tun, fwd53, loglevel, thread_id);
 
     // Set blocking
     int flags = fcntl(tun, F_GETFL, 0);
-    if (flags < 0 || fcntl(tun, F_SETFL, flags & ~O_NONBLOCK) < 0)
-        log_android(ANDROID_LOG_ERROR, "fcntl tun ~O_NONBLOCK error %d: %s",
-                    errno, strerror(errno));
 
-    if (thread_id && pthread_kill(thread_id, 0) == 0)
+    if (flags < 0 || fcntl(tun, F_SETFL, flags & ~O_NONBLOCK) < 0) {
+        log_android(ANDROID_LOG_ERROR, "fcntl tun ~O_NONBLOCK error %d: %s", errno, strerror(errno));
+    }
+
+    if (thread_id && pthread_kill(thread_id, 0) == 0) {
         log_android(ANDROID_LOG_ERROR, "Already running thread %x", thread_id);
-    else {
+    } else {
         jint rs = (*env)->GetJavaVM(env, &jvm);
-        if (rs != JNI_OK)
+
+        if (rs != JNI_OK) {
             log_android(ANDROID_LOG_ERROR, "GetJavaVM failed");
+        }
 
         // Get arguments
         struct arguments *args = malloc(sizeof(struct arguments));
@@ -163,35 +171,43 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1start(
 
         // Start native thread
         int err = pthread_create(&thread_id, NULL, handle_events, (void *) args);
-        if (err == 0)
+
+        if (err == 0) {
             log_android(ANDROID_LOG_WARN, "Started thread %x", thread_id);
-        else
+        } else {
             log_android(ANDROID_LOG_ERROR, "pthread_create error %d: %s", err, strerror(err));
+        }
     }
 }
 
 JNIEXPORT void JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1stop(
-        JNIEnv *env, jobject instance, jint tun, jboolean clr) {
+    JNIEnv *env, jobject instance, jint tun, jboolean clr) {
     pthread_t t = thread_id;
     log_android(ANDROID_LOG_WARN, "Stop tun %d  thread %x", tun, t);
+
     if (t && pthread_kill(t, 0) == 0) {
         log_android(ANDROID_LOG_WARN, "Write pipe thread %x", t);
-        if (write(pipefds[1], "x", 1) < 0)
+
+        if (write(pipefds[1], "x", 1) < 0) {
             log_android(ANDROID_LOG_WARN, "Write pipe error %d: %s", errno, strerror(errno));
-        else {
+        } else {
             log_android(ANDROID_LOG_WARN, "Join thread %x", t);
             int err = pthread_join(t, NULL);
-            if (err != 0)
+
+            if (err != 0) {
                 log_android(ANDROID_LOG_WARN, "pthread_join error %d: %s", err, strerror(err));
+            }
         }
 
-        if (clr)
+        if (clr) {
             clear();
+        }
 
         log_android(ANDROID_LOG_WARN, "Stopped thread %x", t);
-    } else
+    } else {
         log_android(ANDROID_LOG_WARN, "Not running thread %x", t);
+    }
 }
 
 JNIEXPORT jint JNICALL
@@ -201,110 +217,134 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1get_1mtu(JNIEnv *env, jobject ins
 
 JNIEXPORT jintArray JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1get_1stats(JNIEnv *env, jobject instance) {
-    if (pthread_mutex_lock(&lock))
+    if (pthread_mutex_lock(&lock)) {
         log_android(ANDROID_LOG_ERROR, "pthread_mutex_lock failed");
+    }
 
     jintArray jarray = (*env)->NewIntArray(env, 5);
     jint *jcount = (*env)->GetIntArrayElements(env, jarray, NULL);
 
 
     struct ng_session *s = ng_session;
+
     while (s != NULL) {
         if (s->protocol == IPPROTO_ICMP || s->protocol == IPPROTO_ICMPV6) {
-            if (!s->icmp.stop)
+            if (!s->icmp.stop) {
                 jcount[0]++;
+            }
         } else if (s->protocol == IPPROTO_UDP) {
-            if (s->udp.state == UDP_ACTIVE)
+            if (s->udp.state == UDP_ACTIVE) {
                 jcount[1]++;
+            }
         } else if (s->protocol == IPPROTO_TCP) {
-            if (s->tcp.state != TCP_CLOSING && s->tcp.state != TCP_CLOSE)
+            if (s->tcp.state != TCP_CLOSING && s->tcp.state != TCP_CLOSE) {
                 jcount[2]++;
+            }
         }
+
         s = s->next;
     }
 
-    if (pthread_mutex_unlock(&lock))
+    if (pthread_mutex_unlock(&lock)) {
         log_android(ANDROID_LOG_ERROR, "pthread_mutex_unlock failed");
+    }
 
     jcount[3] = 0;
     DIR *d = opendir("/proc/self/fd");
+
     if (d) {
         struct dirent *dir;
+
         while ((dir = readdir(d)) != NULL)
-            if (dir->d_type != DT_DIR)
+            if (dir->d_type != DT_DIR) {
                 jcount[3]++;
+            }
+
         closedir(d);
     }
 
     struct rlimit rlim;
+
     memset(&rlim, 0, sizeof(struct rlimit));
+
     getrlimit(RLIMIT_NOFILE, &rlim);
+
     jcount[4] = (jint) rlim.rlim_cur;
 
     (*env)->ReleaseIntArrayElements(env, jarray, jcount, NULL);
+
     return jarray;
 }
 
 JNIEXPORT void JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1pcap(
-        JNIEnv *env, jclass type,
-        jstring name_, jint record_size, jint file_size) {
+    JNIEnv *env, jclass type,
+    jstring name_, jint record_size, jint file_size) {
 
     pcap_record_size = (size_t) record_size;
     pcap_file_size = file_size;
 
-    if (pthread_mutex_lock(&lock))
+    if (pthread_mutex_lock(&lock)) {
         log_android(ANDROID_LOG_ERROR, "pthread_mutex_lock failed");
+    }
 
     if (name_ == NULL) {
         if (pcap_file != NULL) {
             int flags = fcntl(fileno(pcap_file), F_GETFL, 0);
-            if (flags < 0 || fcntl(fileno(pcap_file), F_SETFL, flags & ~O_NONBLOCK) < 0)
-                log_android(ANDROID_LOG_ERROR, "PCAP fcntl ~O_NONBLOCK error %d: %s",
-                            errno, strerror(errno));
 
-            if (fsync(fileno(pcap_file)))
+            if (flags < 0 || fcntl(fileno(pcap_file), F_SETFL, flags & ~O_NONBLOCK) < 0) {
+                log_android(ANDROID_LOG_ERROR, "PCAP fcntl ~O_NONBLOCK error %d: %s", errno, strerror(errno));
+            }
+
+            if (fsync(fileno(pcap_file))) {
                 log_android(ANDROID_LOG_ERROR, "PCAP fsync error %d: %s", errno, strerror(errno));
+            }
 
-            if (fclose(pcap_file))
+            if (fclose(pcap_file)) {
                 log_android(ANDROID_LOG_ERROR, "PCAP fclose error %d: %s", errno, strerror(errno));
+            }
 
             pcap_file = NULL;
         }
+
         log_android(ANDROID_LOG_WARN, "PCAP disabled");
     } else {
         const char *name = (*env)->GetStringUTFChars(env, name_, 0);
-        log_android(ANDROID_LOG_WARN, "PCAP file %s record size %d truncate @%ld",
-                    name, pcap_record_size, pcap_file_size);
+        log_android(ANDROID_LOG_WARN, "PCAP file %s record size %d truncate @%ld", name, pcap_record_size, pcap_file_size);
 
         pcap_file = fopen(name, "ab+");
-        if (pcap_file == NULL)
+
+        if (pcap_file == NULL) {
             log_android(ANDROID_LOG_ERROR, "PCAP fopen error %d: %s", errno, strerror(errno));
-        else {
+        } else {
             int flags = fcntl(fileno(pcap_file), F_GETFL, 0);
-            if (flags < 0 || fcntl(fileno(pcap_file), F_SETFL, flags | O_NONBLOCK) < 0)
-                log_android(ANDROID_LOG_ERROR, "PCAP fcntl O_NONBLOCK error %d: %s",
-                            errno, strerror(errno));
+
+            if (flags < 0 || fcntl(fileno(pcap_file), F_SETFL, flags | O_NONBLOCK) < 0) {
+                log_android(ANDROID_LOG_ERROR, "PCAP fcntl O_NONBLOCK error %d: %s", errno, strerror(errno));
+            }
 
             long size = ftell(pcap_file);
+
             if (size == 0) {
                 log_android(ANDROID_LOG_WARN, "PCAP initialize");
                 write_pcap_hdr();
-            } else
+            } else {
                 log_android(ANDROID_LOG_WARN, "PCAP current size %ld", size);
+            }
         }
 
         (*env)->ReleaseStringUTFChars(env, name_, name);
     }
 
-    if (pthread_mutex_unlock(&lock))
+    if (pthread_mutex_unlock(&lock)) {
         log_android(ANDROID_LOG_ERROR, "pthread_mutex_unlock failed");
+    }
 }
 
 JNIEXPORT void JNICALL
 Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(JNIEnv *env, jobject instance, jstring addr_,
-                                                      jint port, jstring username_,
-                                                      jstring password_) {
+        jint port, jstring username_,
+        jstring password_) {
     const char *addr = (*env)->GetStringUTFChars(env, addr_, 0);
     const char *username = (*env)->GetStringUTFChars(env, username_, 0);
     const char *password = (*env)->GetStringUTFChars(env, password_, 0);
@@ -314,8 +354,7 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(JNIEnv *env, jobject insta
     strcpy(socks5_username, username);
     strcpy(socks5_password, password);
 
-    log_android(ANDROID_LOG_WARN, "SOCKS5 %s:%d user=%s",
-                socks5_addr, socks5_port, socks5_username);
+    log_android(ANDROID_LOG_WARN, "SOCKS5 %s:%d user=%s", socks5_addr, socks5_port, socks5_username);
 
     (*env)->ReleaseStringUTFChars(env, addr_, addr);
     (*env)->ReleaseStringUTFChars(env, username_, username);
@@ -328,12 +367,14 @@ Java_eu_faircode_netguard_ServiceSinkhole_jni_1done(JNIEnv *env, jobject instanc
 
     clear();
 
-    if (pthread_mutex_destroy(&lock))
+    if (pthread_mutex_destroy(&lock)) {
         log_android(ANDROID_LOG_ERROR, "pthread_mutex_destroy failed");
+    }
 
     for (int i = 0; i < 2; i++)
-        if (close(pipefds[i]))
+        if (close(pipefds[i])) {
             log_android(ANDROID_LOG_ERROR, "Close pipe error %d: %s", errno, strerror(errno));
+        }
 }
 
 // JNI Util
@@ -361,10 +402,12 @@ Java_eu_faircode_netguard_Util_is_1numeric_1address(JNIEnv *env, jclass type, js
     hints.ai_flags = AI_NUMERICHOST;
     struct addrinfo *result;
     int err = getaddrinfo(ip, NULL, &hints, &result);
-    if (err)
+
+    if (err) {
         log_android(ANDROID_LOG_DEBUG, "getaddrinfo(%s) error %d: %s", ip, err, gai_strerror(err));
-    else
+    } else {
         numeric = (jboolean) (result != NULL);
+    }
 
     (*env)->ReleaseStringUTFChars(env, ip_, ip);
     return numeric;
@@ -375,6 +418,7 @@ void report_exit(const struct arguments *args, const char *fmt, ...) {
     jmethodID mid = jniGetMethodID(args->env, cls, "nativeExit", "(Ljava/lang/String;)V");
 
     jstring jreason = NULL;
+
     if (fmt != NULL) {
         char line[1024];
         va_list argptr;
@@ -387,8 +431,10 @@ void report_exit(const struct arguments *args, const char *fmt, ...) {
     (*args->env)->CallVoidMethod(args->env, args->instance, mid, jreason);
     jniCheckException(args->env);
 
-    if (jreason != NULL)
+    if (jreason != NULL) {
         (*args->env)->DeleteLocalRef(args->env, jreason);
+    }
+
     (*args->env)->DeleteLocalRef(args->env, cls);
 }
 
@@ -397,6 +443,7 @@ void report_error(const struct arguments *args, jint error, const char *fmt, ...
     jmethodID mid = jniGetMethodID(args->env, cls, "nativeError", "(ILjava/lang/String;)V");
 
     jstring jreason = NULL;
+
     if (fmt != NULL) {
         char line[1024];
         va_list argptr;
@@ -409,8 +456,10 @@ void report_error(const struct arguments *args, jint error, const char *fmt, ...
     (*args->env)->CallVoidMethod(args->env, args->instance, mid, error, jreason);
     jniCheckException(args->env);
 
-    if (jreason != NULL)
+    if (jreason != NULL) {
         (*args->env)->DeleteLocalRef(args->env, jreason);
+    }
+
     (*args->env)->DeleteLocalRef(args->env, cls);
 }
 
@@ -418,11 +467,13 @@ static jmethodID midProtect = NULL;
 
 int protect_socket(const struct arguments *args, int socket) {
     jclass cls = (*args->env)->GetObjectClass(args->env, args->instance);
-    if (midProtect == NULL)
+
+    if (midProtect == NULL) {
         midProtect = jniGetMethodID(args->env, cls, "protect", "(I)Z");
+    }
 
     jboolean isProtected = (*args->env)->CallBooleanMethod(
-            args->env, args->instance, midProtect, socket);
+                               args->env, args->instance, midProtect, socket);
     jniCheckException(args->env);
 
     if (!isProtected) {
@@ -440,53 +491,69 @@ int protect_socket(const struct arguments *args, int socket) {
 
 jobject jniGlobalRef(JNIEnv *env, jobject cls) {
     jobject gcls = (*env)->NewGlobalRef(env, cls);
-    if (gcls == NULL)
+
+    if (gcls == NULL) {
         log_android(ANDROID_LOG_ERROR, "Global ref failed (out of memory?)");
+    }
+
     return gcls;
 }
 
 jclass jniFindClass(JNIEnv *env, const char *name) {
     jclass cls = (*env)->FindClass(env, name);
-    if (cls == NULL)
+
+    if (cls == NULL) {
         log_android(ANDROID_LOG_ERROR, "Class %s not found", name);
-    else
+    } else {
         jniCheckException(env);
+    }
+
     return cls;
 }
 
 jmethodID jniGetMethodID(JNIEnv *env, jclass cls, const char *name, const char *signature) {
     jmethodID method = (*env)->GetMethodID(env, cls, name, signature);
+
     if (method == NULL) {
         log_android(ANDROID_LOG_ERROR, "Method %s %s not found", name, signature);
         jniCheckException(env);
     }
+
     return method;
 }
 
 jfieldID jniGetFieldID(JNIEnv *env, jclass cls, const char *name, const char *type) {
     jfieldID field = (*env)->GetFieldID(env, cls, name, type);
-    if (field == NULL)
+
+    if (field == NULL) {
         log_android(ANDROID_LOG_ERROR, "Field %s type %s not found", name, type);
+    }
+
     return field;
 }
 
 jobject jniNewObject(JNIEnv *env, jclass cls, jmethodID constructor, const char *name) {
     jobject object = (*env)->NewObject(env, cls, constructor);
-    if (object == NULL)
+
+    if (object == NULL) {
         log_android(ANDROID_LOG_ERROR, "Create object %s failed", name);
-    else
+    } else {
         jniCheckException(env);
+    }
+
     return object;
 }
 
 int jniCheckException(JNIEnv *env) {
     jthrowable ex = (*env)->ExceptionOccurred(env);
+
     if (ex) {
         (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, ex);
         return 1;
     }
+
     return 0;
 }
 
@@ -502,8 +569,10 @@ void log_packet(const struct arguments *args, jobject jpacket) {
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
     const char *signature = "(Leu/faircode/netguard/Packet;)V";
-    if (midLogPacket == NULL)
+
+    if (midLogPacket == NULL) {
         midLogPacket = jniGetMethodID(args->env, clsService, "logPacket", signature);
+    }
 
     (*args->env)->CallVoidMethod(args->env, args->instance, midLogPacket, jpacket);
     jniCheckException(args->env);
@@ -513,10 +582,12 @@ void log_packet(const struct arguments *args, jobject jpacket) {
 
 #ifdef PROFILE_JNI
     gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
-                (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_JNI)
+    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+
+    if (mselapsed > PROFILE_JNI) {
         log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+    }
+
 #endif
 }
 
@@ -539,12 +610,16 @@ void dns_resolved(const struct arguments *args,
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
     const char *signature = "(Leu/faircode/netguard/ResourceRecord;)V";
-    if (midDnsResolved == NULL)
+
+    if (midDnsResolved == NULL) {
         midDnsResolved = jniGetMethodID(args->env, clsService, "dnsResolved", signature);
+    }
 
     const char *rr = "eu/faircode/netguard/ResourceRecord";
-    if (midInitRR == NULL)
+
+    if (midInitRR == NULL) {
         midInitRR = jniGetMethodID(args->env, clsRR, "<init>", "()V");
+    }
 
     jobject jrr = jniNewObject(args->env, clsRR, midInitRR, rr);
 
@@ -579,10 +654,12 @@ void dns_resolved(const struct arguments *args,
 
 #ifdef PROFILE_JNI
     gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
-                (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_JNI)
+    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+
+    if (mselapsed > PROFILE_JNI) {
         log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+    }
+
 #endif
 }
 
@@ -598,13 +675,15 @@ jboolean is_domain_blocked(const struct arguments *args, const char *name) {
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
     const char *signature = "(Ljava/lang/String;)Z";
-    if (midIsDomainBlocked == NULL)
+
+    if (midIsDomainBlocked == NULL) {
         midIsDomainBlocked = jniGetMethodID(args->env, clsService, "isDomainBlocked", signature);
+    }
 
     jstring jname = (*args->env)->NewStringUTF(args->env, name);
 
     jboolean jallowed = (*args->env)->CallBooleanMethod(
-            args->env, args->instance, midIsDomainBlocked, jname);
+                            args->env, args->instance, midIsDomainBlocked, jname);
     jniCheckException(args->env);
 
     (*args->env)->DeleteLocalRef(args->env, jname);
@@ -614,8 +693,11 @@ jboolean is_domain_blocked(const struct arguments *args, const char *name) {
     gettimeofday(&end, NULL);
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
                 (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_JNI)
+
+    if (mselapsed > PROFILE_JNI) {
         log_android(ANDROID_LOG_WARN, "is_domain_blocked %f", mselapsed);
+    }
+
 #endif
 
     return jallowed;
@@ -636,11 +718,13 @@ struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
     const char *signature = "(Leu/faircode/netguard/Packet;)Leu/faircode/netguard/Allowed;";
-    if (midIsAddressAllowed == NULL)
+
+    if (midIsAddressAllowed == NULL) {
         midIsAddressAllowed = jniGetMethodID(args->env, clsService, "isAddressAllowed", signature);
+    }
 
     jobject jallowed = (*args->env)->CallObjectMethod(
-            args->env, args->instance, midIsAddressAllowed, jpacket);
+                           args->env, args->instance, midIsAddressAllowed, jpacket);
     jniCheckException(args->env);
 
     if (jallowed != NULL) {
@@ -651,13 +735,15 @@ struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket
         }
 
         jstring jraddr = (*args->env)->GetObjectField(args->env, jallowed, fidRaddr);
-        if (jraddr == NULL)
+
+        if (jraddr == NULL) {
             *allowed.raddr = 0;
-        else {
+        } else {
             const char *raddr = (*args->env)->GetStringUTFChars(args->env, jraddr, NULL);
             strcpy(allowed.raddr, raddr);
             (*args->env)->ReleaseStringUTFChars(args->env, jraddr, raddr);
         }
+
         allowed.rport = (uint16_t) (*args->env)->GetIntField(args->env, jallowed, fidRport);
 
         (*args->env)->DeleteLocalRef(args->env, jraddr);
@@ -670,10 +756,12 @@ struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket
 
 #ifdef PROFILE_JNI
     gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
-                (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_JNI)
+    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+
+    if (mselapsed > PROFILE_JNI) {
         log_android(ANDROID_LOG_WARN, "is_address_allowed %f", mselapsed);
+    }
+
 #endif
 
     return (jallowed == NULL ? NULL : &allowed);
@@ -719,8 +807,11 @@ jobject create_packet(const struct arguments *args,
      */
 
     const char *packet = "eu/faircode/netguard/Packet";
-    if (midInitPacket == NULL)
+
+    if (midInitPacket == NULL) {
         midInitPacket = jniGetMethodID(env, clsPacket, "<init>", "()V");
+    }
+
     jobject jpacket = jniNewObject(env, clsPacket, midInitPacket, packet);
 
     if (fidTime == NULL) {
@@ -739,37 +830,61 @@ jobject create_packet(const struct arguments *args,
     }
 
     struct timeval tv;
+
     gettimeofday(&tv, NULL);
+
     jlong t = tv.tv_sec * 1000LL + tv.tv_usec / 1000;
+
     jstring jflags = (*env)->NewStringUTF(env, flags);
+
     jstring jsource = (*env)->NewStringUTF(env, source);
+
     jstring jdest = (*env)->NewStringUTF(env, dest);
+
     jstring jdata = (*env)->NewStringUTF(env, data);
 
     (*env)->SetLongField(env, jpacket, fidTime, t);
+
     (*env)->SetIntField(env, jpacket, fidVersion, version);
+
     (*env)->SetIntField(env, jpacket, fidProtocol, protocol);
+
     (*env)->SetObjectField(env, jpacket, fidFlags, jflags);
+
     (*env)->SetObjectField(env, jpacket, fidSaddr, jsource);
+
     (*env)->SetIntField(env, jpacket, fidSport, sport);
+
     (*env)->SetObjectField(env, jpacket, fidDaddr, jdest);
+
     (*env)->SetIntField(env, jpacket, fidDport, dport);
+
     (*env)->SetObjectField(env, jpacket, fidData, jdata);
+
     (*env)->SetIntField(env, jpacket, fidUid, uid);
+
     (*env)->SetBooleanField(env, jpacket, fidAllowed, allowed);
 
     (*env)->DeleteLocalRef(env, jdata);
+
     (*env)->DeleteLocalRef(env, jdest);
+
     (*env)->DeleteLocalRef(env, jsource);
+
     (*env)->DeleteLocalRef(env, jflags);
+
     // Caller needs to delete reference to packet
 
 #ifdef PROFILE_JNI
     gettimeofday(&end, NULL);
+
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
                 (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_JNI)
+
+    if (mselapsed > PROFILE_JNI) {
         log_android(ANDROID_LOG_WARN, "create_packet %f", mselapsed);
+    }
+
 #endif
 
     return jpacket;
@@ -797,12 +912,16 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
     const char *signature = "(Leu/faircode/netguard/Usage;)V";
-    if (midAccountUsage == NULL)
+
+    if (midAccountUsage == NULL) {
         midAccountUsage = jniGetMethodID(args->env, clsService, "accountUsage", signature);
+    }
 
     const char *usage = "eu/faircode/netguard/Usage";
-    if (midInitUsage == NULL)
+
+    if (midInitUsage == NULL) {
         midInitUsage = jniGetMethodID(args->env, clsUsage, "<init>", "()V");
+    }
 
     jobject jusage = jniNewObject(args->env, clsUsage, midInitUsage, usage);
 
@@ -839,10 +958,12 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
 
 #ifdef PROFILE_JNI
     gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
-                (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_JNI)
+    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+
+    if (mselapsed > PROFILE_JNI) {
         log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+    }
+
 #endif
 }
 

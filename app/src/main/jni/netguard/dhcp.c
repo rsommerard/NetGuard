@@ -40,8 +40,7 @@ int check_dhcp(const struct arguments *args, const struct udp_session *u,
     }
 
     if (request->htype != 1 || request->hlen != 6) {
-        log_android(ANDROID_LOG_WARN, "DHCP unknown hardware htype %d hlen %d",
-                    request->htype, request->hlen);
+        log_android(ANDROID_LOG_WARN, "DHCP unknown hardware htype %d hlen %d", request->htype, request->hlen);
         return -1;
     }
 

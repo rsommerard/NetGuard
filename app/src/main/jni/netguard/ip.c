@@ -28,10 +28,11 @@ uint16_t get_mtu() {
 }
 
 uint16_t get_default_mss(int version) {
-    if (version == 4)
+    if (version == 4) {
         return (uint16_t) (get_mtu() - sizeof(struct iphdr) - sizeof(struct tcphdr));
-    else
+    } else {
         return (uint16_t) (get_mtu() - sizeof(struct ip6_hdr) - sizeof(struct tcphdr));
+    }
 }
 
 int check_tun(const struct arguments *args,
@@ -41,14 +42,14 @@ int check_tun(const struct arguments *args,
     // Check tun error
     if (ev->events & EPOLLERR) {
         log_android(ANDROID_LOG_ERROR, "tun %d exception", args->tun);
+
         if (fcntl(args->tun, F_GETFL) < 0) {
-            log_android(ANDROID_LOG_ERROR, "fcntl tun %d F_GETFL error %d: %s",
-                        args->tun, errno, strerror(errno));
-            report_exit(args, "fcntl tun %d F_GETFL error %d: %s",
-                        args->tun, errno, strerror(errno));
-        }
-        else
+            log_android(ANDROID_LOG_ERROR, "fcntl tun %d F_GETFL error %d: %s", args->tun, errno, strerror(errno));
+            report_exit(args, "fcntl tun %d F_GETFL error %d: %s", args->tun, errno, strerror(errno));
+        } else {
             report_exit(args, "tun %d exception", args->tun);
+        }
+
         return -1;
     }
 
@@ -56,24 +57,25 @@ int check_tun(const struct arguments *args,
     if (ev->events & EPOLLIN) {
         uint8_t *buffer = malloc(get_mtu());
         ssize_t length = read(args->tun, buffer, get_mtu());
+
         if (length < 0) {
             free(buffer);
 
-            log_android(ANDROID_LOG_ERROR, "tun %d read error %d: %s",
-                        args->tun, errno, strerror(errno));
+            log_android(ANDROID_LOG_ERROR, "tun %d read error %d: %s", args->tun, errno, strerror(errno));
+
             if (errno == EINTR || errno == EAGAIN)
                 // Retry later
+            {
                 return 0;
-            else {
-                report_exit(args, "tun %d read error %d: %s",
-                            args->tun, errno, strerror(errno));
+            } else {
+                report_exit(args, "tun %d read error %d: %s", args->tun, errno, strerror(errno));
                 return -1;
             }
-        }
-        else if (length > 0) {
+        } else if (length > 0) {
             // Write pcap record
-            if (pcap_file != NULL)
+            if (pcap_file != NULL) {
                 write_pcap_rec(buffer, (size_t) length);
+            }
 
             if (length > max_tun_msg) {
                 max_tun_msg = length;
@@ -84,8 +86,7 @@ int check_tun(const struct arguments *args,
             handle_ip(args, buffer, (size_t) length, epoll_fd, sessions, maxsessions);
 
             free(buffer);
-        }
-        else {
+        } else {
             // tun eof
             free(buffer);
 
@@ -134,6 +135,7 @@ void handle_ip(const struct arguments *args,
 
     // Get protocol, addresses & payload
     uint8_t version = (*pkt) >> 4;
+
     if (version == 4) {
         if (length < sizeof(struct iphdr)) {
             log_android(ANDROID_LOG_WARN, "IP4 packet too short length %d", length);
@@ -143,12 +145,13 @@ void handle_ip(const struct arguments *args,
         struct iphdr *ip4hdr = (struct iphdr *) pkt;
 
         protocol = ip4hdr->protocol;
+
         saddr = &ip4hdr->saddr;
+
         daddr = &ip4hdr->daddr;
 
         if (ip4hdr->frag_off & IP_MF) {
-            log_android(ANDROID_LOG_ERROR, "IP fragment offset %u",
-                        (ip4hdr->frag_off & IP_OFFMASK) * 8);
+            log_android(ANDROID_LOG_ERROR, "IP fragment offset %u", (ip4hdr->frag_off & IP_OFFMASK) * 8);
             return;
         }
 
@@ -156,8 +159,7 @@ void handle_ip(const struct arguments *args,
         payload = (uint8_t *) (pkt + sizeof(struct iphdr) + ipoptlen);
 
         if (ntohs(ip4hdr->tot_len) != length) {
-            log_android(ANDROID_LOG_ERROR, "Invalid length %u header length %u",
-                        length, ntohs(ip4hdr->tot_len));
+            log_android(ANDROID_LOG_ERROR, "Invalid length %u header length %u", length, ntohs(ip4hdr->tot_len));
             return;
         }
 
@@ -167,8 +169,7 @@ void handle_ip(const struct arguments *args,
                 return;
             }
         }
-    }
-    else if (version == 6) {
+    } else if (version == 6) {
         if (length < sizeof(struct ip6_hdr)) {
             log_android(ANDROID_LOG_WARN, "IP6 packet too short length %d", length);
             return;
@@ -178,11 +179,14 @@ void handle_ip(const struct arguments *args,
 
         // Skip extension headers
         uint16_t off = 0;
+
         protocol = ip6hdr->ip6_nxt;
+
         if (!is_upper_layer(protocol)) {
             log_android(ANDROID_LOG_WARN, "IP6 extension %d", protocol);
             off = sizeof(struct ip6_hdr);
             struct ip6_ext *ext = (struct ip6_ext *) (pkt + off);
+
             while (is_lower_layer(ext->ip6e_nxt) && !is_upper_layer(protocol)) {
                 protocol = ext->ip6e_nxt;
                 log_android(ANDROID_LOG_WARN, "IP6 extension %d", protocol);
@@ -190,6 +194,7 @@ void handle_ip(const struct arguments *args,
                 off += (8 + ext->ip6e_len);
                 ext = (struct ip6_ext *) (pkt + off);
             }
+
             if (!is_upper_layer(protocol)) {
                 off = 0;
                 protocol = ip6hdr->ip6_nxt;
@@ -203,8 +208,7 @@ void handle_ip(const struct arguments *args,
         payload = (uint8_t *) (pkt + sizeof(struct ip6_hdr) + off);
 
         // TODO checksum
-    }
-    else {
+    } else {
         log_android(ANDROID_LOG_ERROR, "Unknown version %d", version);
         return;
     }
@@ -216,6 +220,7 @@ void handle_ip(const struct arguments *args,
     int syn = 0;
     uint16_t sport = 0;
     uint16_t dport = 0;
+
     if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6) {
         if (length - (payload - pkt) < sizeof(struct icmp)) {
             log_android(ANDROID_LOG_WARN, "ICMP packet too short");
@@ -226,10 +231,10 @@ void handle_ip(const struct arguments *args,
 
         // http://lwn.net/Articles/443051/
         sport = ntohs(icmp->icmp_id);
+
         dport = ntohs(icmp->icmp_id);
 
-    }
-    else if (protocol == IPPROTO_UDP) {
+    } else if (protocol == IPPROTO_UDP) {
         if (length - (payload - pkt) < sizeof(struct udphdr)) {
             log_android(ANDROID_LOG_WARN, "UDP packet too short");
             return;
@@ -238,11 +243,11 @@ void handle_ip(const struct arguments *args,
         struct udphdr *udp = (struct udphdr *) payload;
 
         sport = ntohs(udp->source);
+
         dport = ntohs(udp->dest);
 
         // TODO checksum (IPv6)
-    }
-    else if (protocol == IPPROTO_TCP) {
+    } else if (protocol == IPPROTO_TCP) {
         if (length - (payload - pkt) < sizeof(struct tcphdr)) {
             log_android(ANDROID_LOG_WARN, "TCP packet too short");
             return;
@@ -251,84 +256,92 @@ void handle_ip(const struct arguments *args,
         struct tcphdr *tcp = (struct tcphdr *) payload;
 
         sport = ntohs(tcp->source);
+
         dport = ntohs(tcp->dest);
 
         if (tcp->syn) {
             syn = 1;
             flags[flen++] = 'S';
         }
-        if (tcp->ack)
+
+        if (tcp->ack) {
             flags[flen++] = 'A';
-        if (tcp->psh)
+        }
+
+        if (tcp->psh) {
             flags[flen++] = 'P';
-        if (tcp->fin)
+        }
+
+        if (tcp->fin) {
             flags[flen++] = 'F';
-        if (tcp->rst)
+        }
+
+        if (tcp->rst) {
             flags[flen++] = 'R';
+        }
 
         // TODO checksum
-    }
-    else if (protocol != IPPROTO_HOPOPTS && protocol != IPPROTO_IGMP && protocol != IPPROTO_ESP)
+    } else if (protocol != IPPROTO_HOPOPTS && protocol != IPPROTO_IGMP && protocol != IPPROTO_ESP) {
         log_android(ANDROID_LOG_WARN, "Unknown protocol %d", protocol);
+    }
 
     flags[flen] = 0;
 
     // Limit number of sessions
     if (sessions >= maxsessions) {
-        if ((protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6) ||
-            (protocol == IPPROTO_UDP && !has_udp_session(args, pkt, payload)) ||
-            (protocol == IPPROTO_TCP && syn)) {
-            log_android(ANDROID_LOG_ERROR,
-                        "%d of max %d sessions, dropping version %d protocol %d",
-                        sessions, maxsessions, protocol, version);
+        if ((protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6) || (protocol == IPPROTO_UDP && !has_udp_session(args, pkt, payload)) || (protocol == IPPROTO_TCP && syn)) {
+            log_android(ANDROID_LOG_ERROR, "%d of max %d sessions, dropping version %d protocol %d", sessions, maxsessions, protocol, version);
             return;
         }
     }
 
     // Get uid
     jint uid = -1;
-    if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6 ||
-        (protocol == IPPROTO_UDP && !has_udp_session(args, pkt, payload)) ||
-        (protocol == IPPROTO_TCP && syn))
-        uid = get_uid(version, protocol, saddr, sport, daddr, dport);
 
-    log_android(ANDROID_LOG_DEBUG,
-                "Packet v%d %s/%u > %s/%u proto %d flags %s uid %d",
-                version, source, sport, dest, dport, protocol, flags, uid);
+    if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6 || (protocol == IPPROTO_UDP && !has_udp_session(args, pkt, payload)) || (protocol == IPPROTO_TCP && syn)) {
+        uid = get_uid(version, protocol, saddr, sport, daddr, dport);
+    }
+
+    log_android(ANDROID_LOG_DEBUG, "Packet v%d %s/%u > %s/%u proto %d flags %s uid %d", version, source, sport, dest, dport, protocol, flags, uid);
 
     // Check if allowed
     int allowed = 0;
     struct allowed *redirect = NULL;
-    if (protocol == IPPROTO_UDP && has_udp_session(args, pkt, payload))
-        allowed = 1; // could be a lingering/blocked session
-    else if (protocol == IPPROTO_TCP && !syn)
-        allowed = 1; // assume existing session
-    else {
+
+    if (protocol == IPPROTO_UDP && has_udp_session(args, pkt, payload)) {
+        allowed = 1;    // could be a lingering/blocked session
+    } else if (protocol == IPPROTO_TCP && !syn) {
+        allowed = 1;    // assume existing session
+    } else {
         jobject objPacket = create_packet(
-                args, version, protocol, flags, source, sport, dest, dport, "", uid, 0);
+                                args, version, protocol, flags, source, sport, dest, dport, "", uid, 0);
         redirect = is_address_allowed(args, objPacket);
         allowed = (redirect != NULL);
-        if (redirect != NULL && (*redirect->raddr == 0 || redirect->rport == 0))
+
+        if (redirect != NULL && (*redirect->raddr == 0 || redirect->rport == 0)) {
             redirect = NULL;
+        }
     }
 
     // Handle allowed traffic
     if (allowed) {
-        if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6)
+        if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6) {
             handle_icmp(args, pkt, length, payload, uid, epoll_fd);
-        else if (protocol == IPPROTO_UDP)
+        } else if (protocol == IPPROTO_UDP) {
             handle_udp(args, pkt, length, payload, uid, redirect, epoll_fd);
-        else if (protocol == IPPROTO_TCP)
+        } else if (protocol == IPPROTO_TCP) {
             handle_tcp(args, pkt, length, payload, uid, allowed, redirect, epoll_fd);
-    }
-    else {
-        if (protocol == IPPROTO_UDP)
+        }
+    } else {
+        if (protocol == IPPROTO_UDP) {
             block_udp(args, pkt, length, payload, uid);
-        if (protocol == IPPROTO_TCP)
-            handle_tcp(args, pkt, length, payload, uid, allowed, redirect, epoll_fd);
+        }
 
-        log_android(ANDROID_LOG_WARN, "Address v%d p%d %s/%u syn %d not allowed",
-                    version, protocol, dest, dport, syn);
+        if (protocol == IPPROTO_TCP) {
+            handle_tcp(args, pkt, length, payload, uid, allowed, redirect, epoll_fd);
+        }
+
+        log_android(ANDROID_LOG_WARN, "Address v%d p%d %s/%u syn %d not allowed", version, protocol, dest, dport, syn);
     }
 }
 
@@ -339,8 +352,7 @@ jint get_uid(const int version, const int protocol,
 
     char dest[INET6_ADDRSTRLEN + 1];
     inet_ntop(version == 4 ? AF_INET : AF_INET6, daddr, dest, sizeof(dest));
-    log_android(ANDROID_LOG_INFO, "get uid v%d p%d %u > %s/%u",
-                version, protocol, sport, dest, dport);
+    log_android(ANDROID_LOG_INFO, "get uid v%d p%d %u > %s/%u", version, protocol, sport, dest, dport);
 
     // Check IPv6 table first
     if (version == 4) {
@@ -352,12 +364,13 @@ jint get_uid(const int version, const int protocol,
         uid = get_uid_sub(6, protocol, saddr, sport, daddr128, dport);
     }
 
-    if (uid < 0)
+    if (uid < 0) {
         uid = get_uid_sub(version, protocol, saddr, sport, daddr, dport);
+    }
 
-    if (uid < 0)
-        log_android(ANDROID_LOG_ERROR, "uid v%d p%d %u > %s/%u not found",
-                    version, protocol, sport, dest, dport);
+    if (uid < 0) {
+        log_android(ANDROID_LOG_ERROR, "uid v%d p%d %u > %s/%u not found", version, protocol, sport, dest, dport);
+    }
 
     return uid;
 }
@@ -386,19 +399,22 @@ jint get_uid_sub(const int version, const int protocol,
 
     // Get proc file name
     char *fn = NULL;
-    if (protocol == IPPROTO_ICMP && version == 4)
+
+    if (protocol == IPPROTO_ICMP && version == 4) {
         fn = "/proc/net/icmp";
-    else if (protocol == IPPROTO_ICMPV6 && version == 6)
+    } else if (protocol == IPPROTO_ICMPV6 && version == 6) {
         fn = "/proc/net/icmp6";
-    else if (protocol == IPPROTO_TCP)
+    } else if (protocol == IPPROTO_TCP) {
         fn = (version == 4 ? "/proc/net/tcp" : "/proc/net/tcp6");
-    else if (protocol == IPPROTO_UDP)
+    } else if (protocol == IPPROTO_UDP) {
         fn = (version == 4 ? "/proc/net/udp" : "/proc/net/udp6");
-    else
+    } else {
         return uid;
+    }
 
     // Open proc file
     FILE *fd = fopen(fn, "r");
+
     if (fd == NULL) {
         log_android(ANDROID_LOG_ERROR, "fopen %s error %d: %s", fn, errno, strerror(errno));
         return uid;
@@ -408,55 +424,64 @@ jint get_uid_sub(const int version, const int protocol,
     jint u;
     int i = 0;
     *line = 0;
+
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (i++) {
             *hex = 0;
             _sport = -1;
             _dport = -1;
             u = -1;
+
             if (version == 4)
                 fields = sscanf(
-                        line,
-                        "%*d: %*X:%X %8s:%X %*X %*lX:%*lX %*X:%*X %*X %d %*d %*ld",
-                        &_sport, hex, &_dport, &u);
+                             line,
+                             "%*d: %*X:%X %8s:%X %*X %*lX:%*lX %*X:%*X %*X %d %*d %*ld",
+                             &_sport, hex, &_dport, &u);
             else
                 fields = sscanf(
-                        line,
-                        "%*d: %*X:%X %32s:%X %*X %*lX:%*lX %*X:%*X %*X %d %*d %*ld",
-                        &_sport, hex, &_dport, &u);
+                             line,
+                             "%*d: %*X:%X %32s:%X %*X %*lX:%*lX %*X:%*X %*X %d %*d %*ld",
+                             &_sport, hex, &_dport, &u);
 
             if (fields == 4 && (version == 4 ? strlen(hex) == 8 : strlen(hex) == 32)) {
                 if (_sport > 0 && u >= 0) {
                     hex2bytes(hex, version == 4 ? _daddr4 : _daddr6);
-                    if (version == 4)
+
+                    if (version == 4) {
                         ((uint32_t *) _daddr4)[0] = htonl(((uint32_t *) _daddr4)[0]);
-                    else
-                        for (int w = 0; w < 4; w++)
+                    } else
+                        for (int w = 0; w < 4; w++) {
                             ((uint32_t *) _daddr6)[w] = htonl(((uint32_t *) _daddr6)[w]);
+                        }
 
                     if (_sport == sport) {
                         uid = u;
+
                         if (_dport == dport &&
-                            memcmp(version == 4 ? _daddr4 : _daddr6, daddr,
-                                   version == 4 ? 4 : 16) == 0)
+                                memcmp(version == 4 ? _daddr4 : _daddr6, daddr,
+                                       version == 4 ? 4 : 16) == 0) {
                             break;
+                        }
                     }
                 }
-            }
-            else
+            } else {
                 log_android(ANDROID_LOG_ERROR, "Invalid field #%d: %s", fields, line);
+            }
         }
     }
 
-    if (fclose(fd))
+    if (fclose(fd)) {
         log_android(ANDROID_LOG_ERROR, "fclose %s error %d: %s", fn, errno, strerror(errno));
+    }
 
 #ifdef PROFILE_UID
     gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 +
-                (end.tv_usec - start.tv_usec) / 1000.0;
-    if (mselapsed > PROFILE_UID)
+    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+
+    if (mselapsed > PROFILE_UID) {
         log_android(ANDROID_LOG_WARN, "get uid ip %f", mselapsed);
+    }
+
 #endif
 
     return uid;
