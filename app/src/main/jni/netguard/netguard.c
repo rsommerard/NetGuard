@@ -57,16 +57,16 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return -1;
     }
 
-    const char *packet = "eu/faircode/netguard/Packet";
+    const char *packet = "io/apisense/sting/network/netsense/Packet";
     clsPacket = jniGlobalRef(env, jniFindClass(env, packet));
 
-    const char *allowed = "eu/faircode/netguard/Allowed";
+    const char *allowed = "io/apisense/sting/network/netsense/Allowed";
     clsAllowed = jniGlobalRef(env, jniFindClass(env, allowed));
 
-    const char *rr = "eu/faircode/netguard/ResourceRecord";
+    const char *rr = "io/apisense/sting/network/netsense/ResourceRecord";
     clsRR = jniGlobalRef(env, jniFindClass(env, rr));
 
-    const char *usage = "eu/faircode/netguard/Usage";
+    const char *usage = "io/apisense/sting/network/netsense/Usage";
     clsUsage = jniGlobalRef(env, jniFindClass(env, usage));
 
     // Raise file number limit to maximum
@@ -568,7 +568,7 @@ void log_packet(const struct arguments *args, jobject jpacket) {
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Leu/faircode/netguard/Packet;)V";
+    const char *signature = "(Lio/apisense/sting/network/netsense/Packet;)V";
 
     if (midLogPacket == NULL) {
         midLogPacket = jniGetMethodID(args->env, clsService, "logPacket", signature);
@@ -609,13 +609,13 @@ void dns_resolved(const struct arguments *args,
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Leu/faircode/netguard/ResourceRecord;)V";
+    const char *signature = "(Lio/apisense/sting/network/netsense/ResourceRecord;)V";
 
     if (midDnsResolved == NULL) {
         midDnsResolved = jniGetMethodID(args->env, clsService, "dnsResolved", signature);
     }
 
-    const char *rr = "eu/faircode/netguard/ResourceRecord";
+    const char *rr = "io/apisense/sting/network/netsense/ResourceRecord";
 
     if (midInitRR == NULL) {
         midInitRR = jniGetMethodID(args->env, clsRR, "<init>", "()V");
@@ -717,7 +717,7 @@ struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Leu/faircode/netguard/Packet;)Leu/faircode/netguard/Allowed;";
+    const char *signature = "(Lio/apisense/sting/network/netsense/Packet;)Lio/apisense/sting/network/netsense/Allowed;";
 
     if (midIsAddressAllowed == NULL) {
         midIsAddressAllowed = jniGetMethodID(args->env, clsService, "isAddressAllowed", signature);
@@ -806,7 +806,7 @@ jobject create_packet(const struct arguments *args,
         env->SetByteArrayRegion (ret, 0, 3, b);
      */
 
-    const char *packet = "eu/faircode/netguard/Packet";
+    const char *packet = "io/apisense/sting/network/netsense/Packet";
 
     if (midInitPacket == NULL) {
         midInitPacket = jniGetMethodID(env, clsPacket, "<init>", "()V");
@@ -911,13 +911,13 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Leu/faircode/netguard/Usage;)V";
+    const char *signature = "(Lio/apisense/sting/network/netsense/Usage;)V";
 
     if (midAccountUsage == NULL) {
         midAccountUsage = jniGetMethodID(args->env, clsService, "accountUsage", signature);
     }
 
-    const char *usage = "eu/faircode/netguard/Usage";
+    const char *usage = "io/apisense/sting/network/netsense/Usage";
 
     if (midInitUsage == NULL) {
         midInitUsage = jniGetMethodID(args->env, clsUsage, "<init>", "()V");
