@@ -845,3 +845,44 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
         log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
 #endif
 }
+
+JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_initNetGuard(JNIEnv *env, jobject instance) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1init(env, instance);
+}
+
+JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_startNetGuard(
+    JNIEnv *env, jobject instance, jint tun, jboolean fwd53, jint rcode, jint loglevel_) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1start(env, instance, tun, fwd53, rcode, loglevel_);
+}
+
+JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_stopNetGuard(JNIEnv *env, jobject instance, jint tun, jboolean clr) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1stop(env, instance, tun, clr);
+}
+
+JNIEXPORT jint JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_getMtu(JNIEnv *env, jobject instance) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1get_1mtu(env, instance);
+}
+
+JNIEXPORT jintArray JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_getNetGuardStats(JNIEnv *env, jobject instance) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1get_1stats(env, instance);
+}
+
+JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_processPcap(JNIEnv *env, jclass type, jstring name_, jint record_size, jint file_size) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1pcap(env, type, name_, record_size, file_size);
+}
+
+JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_initSocks5(JNIEnv *env, jobject instance, jstring addr_, jint port, jstring username_, jstring password_) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(env, instance, addr_, port, username_, password_);
+}
+
+JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_done(JNIEnv *env, jobject instance) {
+    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1done(env, instance);
+}
+
+JNIEXPORT jstring JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_getProp(JNIEnv *env, jclass type, jstring name_) {
+    return Java_eu_faircode_netguard_Util_jni_1getprop(env, type, name_);
+}
+
+JNIEXPORT jboolean JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_isNumericAddress(JNIEnv *env, jclass type, jstring ip_) {
+    return Java_eu_faircode_netguard_Util_is_1numeric_1address(env, type, ip_);
+}
