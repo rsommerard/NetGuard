@@ -248,14 +248,7 @@ jboolean handle_udp(const struct arguments *args,
     // Search session
     struct ng_session *cur = ng_session;
 
-    while (cur != NULL &&
-            !(cur->protocol == IPPROTO_UDP &&
-              cur->udp.version == version &&
-              cur->udp.source == udphdr->source && cur->udp.dest == udphdr->dest &&
-              (version == 4 ? cur->udp.saddr.ip4 == ip4->saddr &&
-               cur->udp.daddr.ip4 == ip4->daddr
-               : memcmp(&cur->udp.saddr.ip6, &ip6->ip6_src, 16) == 0 &&
-               memcmp(&cur->udp.daddr.ip6, &ip6->ip6_dst, 16) == 0))) {
+    while (cur != NULL && !(cur->protocol == IPPROTO_UDP && cur->udp.version == version && cur->udp.source == udphdr->source && cur->udp.dest == udphdr->dest && (version == 4 ? cur->udp.saddr.ip4 == ip4->saddr && cur->udp.daddr.ip4 == ip4->daddr : memcmp(&cur->udp.saddr.ip6, &ip6->ip6_src, 16) == 0 && memcmp(&cur->udp.daddr.ip6, &ip6->ip6_dst, 16) == 0))) {
         cur = cur->next;
     }
 
@@ -489,8 +482,7 @@ int open_udp_socket(const struct arguments *args,
     return sock;
 }
 
-ssize_t write_udp(const struct arguments *args, const struct udp_session *cur,
-                  uint8_t *data, size_t datalen) {
+ssize_t write_udp(const struct arguments *args, const struct udp_session *cur, uint8_t *data, size_t datalen) {
     size_t len;
     u_int8_t *buffer;
     struct udphdr *udp;
@@ -573,10 +565,8 @@ ssize_t write_udp(const struct arguments *args, const struct udp_session *cur,
     csum = calc_checksum(csum, data, datalen);
     udp->check = ~csum;
 
-    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6,
-              cur->version == 4 ? &cur->saddr.ip4 : &cur->saddr.ip6, source, sizeof(source));
-    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6,
-              cur->version == 4 ? &cur->daddr.ip4 : &cur->daddr.ip6, dest, sizeof(dest));
+    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6, cur->version == 4 ? &cur->saddr.ip4 : &cur->saddr.ip6, source, sizeof(source));
+    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6, cur->version == 4 ? &cur->daddr.ip4 : &cur->daddr.ip6, dest, sizeof(dest));
 
     // Send packet
     // log_android(ANDROID_LOG_DEBUG, "UDP sending to tun %d from %s/%u to %s/%u data %u", args->tun, dest, ntohs(cur->dest), source, ntohs(cur->source), len);

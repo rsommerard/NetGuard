@@ -233,7 +233,6 @@ void handle_ip(const struct arguments *args,
         sport = ntohs(icmp->icmp_id);
 
         dport = ntohs(icmp->icmp_id);
-
     } else if (protocol == IPPROTO_UDP) {
         if (length - (payload - pkt) < sizeof(struct udphdr)) {
             // log_android(ANDROID_LOG_WARN, "UDP packet too short");

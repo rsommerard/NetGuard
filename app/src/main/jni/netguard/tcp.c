@@ -835,13 +835,7 @@ jboolean handle_tcp(const struct arguments *args,
         }
     } else {
         char session[250];
-        sprintf(session,
-                "%s %s loc %u rem %u acked %u",
-                packet,
-                strstate(cur->tcp.state),
-                cur->tcp.local_seq - cur->tcp.local_start,
-                cur->tcp.remote_seq - cur->tcp.remote_start,
-                cur->tcp.acked - cur->tcp.local_start);
+        sprintf(session, "%s %s loc %u rem %u acked %u", packet, strstate(cur->tcp.state), cur->tcp.local_seq - cur->tcp.local_start, cur->tcp.remote_seq - cur->tcp.remote_start, cur->tcp.acked - cur->tcp.local_start);
 
         // Session found
         if (cur->tcp.state == TCP_CLOSING || cur->tcp.state == TCP_CLOSE) {
@@ -888,7 +882,6 @@ jboolean handle_tcp(const struct arguments *args,
                     if (tcphdr->syn) {
                         // log_android(ANDROID_LOG_WARN, "%s repeated SYN", session);
                         // The socket is probably not opened yet
-
                     } else if (tcphdr->fin /* +ACK */) {
                         if (cur->tcp.state == TCP_ESTABLISHED) {
                             // log_android(ANDROID_LOG_WARN, "%s FIN received", session);
@@ -1306,10 +1299,8 @@ ssize_t write_tcp(const struct arguments *args, const struct tcp_session *cur,
     csum = calc_checksum(csum, data, datalen);
     tcp->check = ~csum;
 
-    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6,
-              cur->version == 4 ? &cur->saddr.ip4 : &cur->saddr.ip6, source, sizeof(source));
-    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6,
-              cur->version == 4 ? &cur->daddr.ip4 : &cur->daddr.ip6, dest, sizeof(dest));
+    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6, cur->version == 4 ? &cur->saddr.ip4 : &cur->saddr.ip6, source, sizeof(source));
+    inet_ntop(cur->version == 4 ? AF_INET : AF_INET6, cur->version == 4 ? &cur->daddr.ip4 : &cur->daddr.ip6, dest, sizeof(dest));
 
     // Send packet
     // log_android(ANDROID_LOG_DEBUG, "TCP sending%s%s%s%s to tun %s/%u seq %u ack %u data %u", (tcp->syn ? " SYN" : ""), (tcp->ack ? " ACK" : ""), (tcp->fin ? " FIN" : ""), (tcp->rst ? " RST" : ""), dest, ntohs(tcp->dest), ntohl(tcp->seq) - cur->local_start, ntohl(tcp->ack_seq) - cur->remote_start, datalen);
