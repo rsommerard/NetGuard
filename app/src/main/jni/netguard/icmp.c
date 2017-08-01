@@ -362,6 +362,16 @@ ssize_t write_icmp(const struct arguments *args, const struct icmp_session *cur,
     // Send raw ICMP message
     // log_android(ANDROID_LOG_WARN, "ICMP sending to tun %d from %s to %s data %u type %d code %d id %x seq %d", args->tun, dest, source, datalen, icmp->icmp_type, icmp->icmp_code, icmp->icmp_id, icmp->icmp_seq);
 
+    // log_android(ANDROID_LOG_DEBUG, "write_icmp");
+
+    int pprotocol = cur->version == 4 ? IPPROTO_ICMP : IPPROTO_ICMPV6;
+    // http://lwn.net/Articles/443051/
+    int psport = ntohs(icmp->icmp_id);
+    int pdport = ntohs(icmp->icmp_id);
+    // source <-> dest
+    jobject objPacket = create_packet(args, cur->version, pprotocol, "", dest, pdport, source, psport, "", cur->uid, 1);
+    handle_in_packet(args, objPacket);
+
     ssize_t res = write(args->tun, buffer, len);
 
     // Write PCAP record

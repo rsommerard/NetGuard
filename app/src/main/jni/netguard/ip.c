@@ -322,6 +322,10 @@ void handle_ip(const struct arguments *args,
         }
     }
 
+    // log_android(ANDROID_LOG_INFO, "handle_ip");
+    jobject objPacket = create_packet(args, version, protocol, flags, source, sport, dest, dport, "", uid, allowed);
+    handle_out_packet(args, objPacket);
+
     // Handle allowed traffic
     if (allowed) {
         if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6) {

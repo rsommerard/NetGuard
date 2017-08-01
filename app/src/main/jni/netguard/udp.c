@@ -569,7 +569,16 @@ ssize_t write_udp(const struct arguments *args, const struct udp_session *cur, u
     inet_ntop(cur->version == 4 ? AF_INET : AF_INET6, cur->version == 4 ? &cur->daddr.ip4 : &cur->daddr.ip6, dest, sizeof(dest));
 
     // Send packet
-    // log_android(ANDROID_LOG_DEBUG, "UDP sending to tun %d from %s/%u to %s/%u data %u", args->tun, dest, ntohs(cur->dest), source, ntohs(cur->source), len);
+    // log_android(ANDROID_LOG_DEBUG, "UDP sending to tun %d from %s/%u to %s/%u data %u", args->tun, d est, ntohs(cur->dest), source, ntohs(cur->source), len);
+
+    // log_android(ANDROID_LOG_INFO, "write_udp");
+
+    int pprotocol = IPPROTO_UDP;
+    int psport = ntohs(udp->source);
+    int pdport = ntohs(udp->dest);
+    // source <-> dest
+    jobject objPacket = create_packet(args, cur->version, IPPROTO_UDP, "", dest, pdport, source, psport, "", cur->uid, 1);
+    handle_in_packet(args, objPacket);
 
     ssize_t res = write(args->tun, buffer, len);
 

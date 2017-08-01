@@ -1305,6 +1305,38 @@ ssize_t write_tcp(const struct arguments *args, const struct tcp_session *cur,
     // Send packet
     // log_android(ANDROID_LOG_DEBUG, "TCP sending%s%s%s%s to tun %s/%u seq %u ack %u data %u", (tcp->syn ? " SYN" : ""), (tcp->ack ? " ACK" : ""), (tcp->fin ? " FIN" : ""), (tcp->rst ? " RST" : ""), dest, ntohs(tcp->dest), ntohl(tcp->seq) - cur->local_start, ntohl(tcp->ack_seq) - cur->remote_start, datalen);
 
+    int psport = ntohs(tcp->dest);
+    int pdport = ntohs(tcp->source);
+    char pflags[10];
+    int pflen = 0;
+
+    if (tcp->syn) {
+        pflags[pflen++] = 'S';
+    }
+
+    if (tcp->ack) {
+        pflags[pflen++] = 'A';
+    }
+
+    if (tcp->psh) {
+        pflags[pflen++] = 'P';
+    }
+
+    if (tcp->fin) {
+        pflags[pflen++] = 'F';
+    }
+
+    if (tcp->rst) {
+        pflags[pflen++] = 'R';
+    }
+
+    pflags[pflen] = 0;
+
+    // log_android(ANDROID_LOG_INFO, "write_tcp");
+    // source <-> dest
+    jobject objPacket = create_packet(args, cur->version, IPPROTO_TCP, pflags, dest, pdport, source, psport, "", cur->uid, 1);
+    handle_in_packet(args, objPacket);
+
     ssize_t res = write(args->tun, buffer, len);
 
     // Write pcap record
