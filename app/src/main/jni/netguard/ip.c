@@ -295,11 +295,7 @@ void handle_ip(const struct arguments *args,
     }
 
     // Get uid
-    jint uid = -1;
-
-    if (protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMPV6 || (protocol == IPPROTO_UDP && !has_udp_session(args, pkt, payload)) || (protocol == IPPROTO_TCP && syn)) {
-        uid = get_uid(version, protocol, saddr, sport, daddr, dport);
-    }
+    jint uid = get_uid(version, protocol, saddr, sport, daddr, dport);
 
     // log_android(ANDROID_LOG_DEBUG, "Packet v%d %s/%u > %s/%u proto %d flags %s uid %d", version, source, sport, dest, dport, protocol, flags, uid);
 
