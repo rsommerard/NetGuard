@@ -37,6 +37,15 @@ public class Packet {
 
     @Override
     public String toString() {
-        return "uid=" + uid + " v" + version + " p" + protocol + " " + daddr + "/" + dport;
+        String prtcl = protocol == 17 ? "UDP" : protocol == 6 ? "TCP" : "ICMP";
+        String flgs = "".equals(flags) ? "_" : flags;
+        String dt = "".equals(data) ? "_" : data;
+
+        return "Packet {\"time\": " + time + ", \"version\": IP" + version +
+                ", \"protocol\": " + prtcl + ", \"flags\": " + flgs +
+                ", \"saddr\": " + saddr + ", \"sport\": " + sport +
+                ", \"daddr\": " + daddr + ", \"dport\": " + dport +
+                ", \"data\": " + dt + ", \"uid\": " + uid +
+                ", \"allowed\": " + allowed + " }";
     }
 }
