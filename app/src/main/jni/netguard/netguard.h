@@ -64,6 +64,14 @@
 #define SOCKS5_CONNECT 4
 #define SOCKS5_CONNECTED 5
 
+#ifndef IPPROTO_ICMPV6
+#define IPPROTO_ICMPV6 58 // https://fr.wikipedia.org/wiki/Internet_Control_Message_Protocol_V6
+#endif
+
+#ifndef IPPROTO_HOPOPTS
+#define	IPPROTO_HOPOPTS	0
+#endif
+
 struct arguments {
     JNIEnv *env;
     jobject instance;
