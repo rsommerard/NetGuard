@@ -57,16 +57,16 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return -1;
     }
 
-    const char *packet = "io/apisense/sting/network/netsense/Packet";
+    const char *packet = "io/apisense/sting/netsense/Packet";
     clsPacket = jniGlobalRef(env, jniFindClass(env, packet));
 
-    const char *allowed = "io/apisense/sting/network/netsense/Allowed";
+    const char *allowed = "io/apisense/sting/netsense/Allowed";
     clsAllowed = jniGlobalRef(env, jniFindClass(env, allowed));
 
-    const char *rr = "io/apisense/sting/network/netsense/ResourceRecord";
+    const char *rr = "io/apisense/sting/netsense/ResourceRecord";
     clsRR = jniGlobalRef(env, jniFindClass(env, rr));
 
-    const char *usage = "io/apisense/sting/network/netsense/Usage";
+    const char *usage = "io/apisense/sting/netsense/Usage";
     clsUsage = jniGlobalRef(env, jniFindClass(env, usage));
 
     // Raise file number limit to maximum
@@ -570,7 +570,7 @@ void log_packet(const struct arguments *args, jobject jpacket) {
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Lio/apisense/sting/network/netsense/Packet;)V";
+    const char *signature = "(Lio/apisense/sting/netsense/Packet;)V";
 
     if (midLogPacket == NULL) {
         midLogPacket = jniGetMethodID(args->env, clsService, "logPacket", signature);
@@ -602,7 +602,7 @@ void handle_out_packet(const struct arguments *args, jobject jpacket) {
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Lio/apisense/sting/network/netsense/Packet;)V";
+    const char *signature = "(Lio/apisense/sting/netsense/Packet;)V";
 
     if (midHandleOutPacket == NULL) {
         midHandleOutPacket = jniGetMethodID(args->env, clsService, "handleOutPacket", signature);
@@ -634,7 +634,7 @@ void handle_in_packet(const struct arguments *args, jobject jpacket) {
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Lio/apisense/sting/network/netsense/Packet;)V";
+    const char *signature = "(Lio/apisense/sting/netsense/Packet;)V";
 
     if (midHandleInPacket == NULL) {
         midHandleInPacket = jniGetMethodID(args->env, clsService, "handleInPacket", signature);
@@ -675,13 +675,13 @@ void dns_resolved(const struct arguments *args,
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Lio/apisense/sting/network/netsense/ResourceRecord;)V";
+    const char *signature = "(Lio/apisense/sting/netsense/ResourceRecord;)V";
 
     if (midDnsResolved == NULL) {
         midDnsResolved = jniGetMethodID(args->env, clsService, "dnsResolved", signature);
     }
 
-    const char *rr = "io/apisense/sting/network/netsense/ResourceRecord";
+    const char *rr = "io/apisense/sting/netsense/ResourceRecord";
 
     if (midInitRR == NULL) {
         midInitRR = jniGetMethodID(args->env, clsRR, "<init>", "()V");
@@ -783,7 +783,7 @@ struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Lio/apisense/sting/network/netsense/Packet;)Lio/apisense/sting/network/netsense/Allowed;";
+    const char *signature = "(Lio/apisense/sting/netsense/Packet;)Lio/apisense/sting/netsense/Allowed;";
 
     if (midIsAddressAllowed == NULL) {
         midIsAddressAllowed = jniGetMethodID(args->env, clsService, "isAddressAllowed", signature);
@@ -872,7 +872,7 @@ jobject create_packet(const struct arguments *args,
         env->SetByteArrayRegion (ret, 0, 3, b);
      */
 
-    const char *packet = "io/apisense/sting/network/netsense/Packet";
+    const char *packet = "io/apisense/sting/netsense/Packet";
 
     if (midInitPacket == NULL) {
         midInitPacket = jniGetMethodID(env, clsPacket, "<init>", "()V");
@@ -977,13 +977,13 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
 
     jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
 
-    const char *signature = "(Lio/apisense/sting/network/netsense/Usage;)V";
+    const char *signature = "(Lio/apisense/sting/netsense/Usage;)V";
 
     if (midAccountUsage == NULL) {
         midAccountUsage = jniGetMethodID(args->env, clsService, "accountUsage", signature);
     }
 
-    const char *usage = "io/apisense/sting/network/netsense/Usage";
+    const char *usage = "io/apisense/sting/netsense/Usage";
 
     if (midInitUsage == NULL) {
         midInitUsage = jniGetMethodID(args->env, clsUsage, "<init>", "()V");
@@ -1033,43 +1033,43 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
 #endif
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_initNetGuard(JNIEnv *env, jobject instance) {
+JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_initNetGuard(JNIEnv *env, jobject instance) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1init(env, instance);
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_startNetGuard(
+JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_startNetGuard(
     JNIEnv *env, jobject instance, jint tun, jboolean fwd53, jint rcode, jint loglevel_) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1start(env, instance, tun, fwd53, rcode, loglevel_);
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_stopNetGuard(JNIEnv *env, jobject instance, jint tun, jboolean clr) {
+JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_stopNetGuard(JNIEnv *env, jobject instance, jint tun, jboolean clr) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1stop(env, instance, tun, clr);
 }
 
-JNIEXPORT jint JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_getMtu(JNIEnv *env, jobject instance) {
+JNIEXPORT jint JNICALL Java_io_apisense_sting_netsense_NetsenseService_getMtu(JNIEnv *env, jobject instance) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1get_1mtu(env, instance);
 }
 
-JNIEXPORT jintArray JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_getNetGuardStats(JNIEnv *env, jobject instance) {
+JNIEXPORT jintArray JNICALL Java_io_apisense_sting_netsense_NetsenseService_getNetGuardStats(JNIEnv *env, jobject instance) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1get_1stats(env, instance);
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_processPcap(JNIEnv *env, jclass type, jstring name_, jint record_size, jint file_size) {
+JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_processPcap(JNIEnv *env, jclass type, jstring name_, jint record_size, jint file_size) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1pcap(env, type, name_, record_size, file_size);
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_initSocks5(JNIEnv *env, jobject instance, jstring addr_, jint port, jstring username_, jstring password_) {
+JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_initSocks5(JNIEnv *env, jobject instance, jstring addr_, jint port, jstring username_, jstring password_) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(env, instance, addr_, port, username_, password_);
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_done(JNIEnv *env, jobject instance) {
+JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_done(JNIEnv *env, jobject instance) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1done(env, instance);
 }
 
-JNIEXPORT jstring JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_getProp(JNIEnv *env, jclass type, jstring name_) {
+JNIEXPORT jstring JNICALL Java_io_apisense_sting_netsense_NetsenseService_getProp(JNIEnv *env, jclass type, jstring name_) {
     return Java_eu_faircode_netguard_Util_jni_1getprop(env, type, name_);
 }
 
-JNIEXPORT jboolean JNICALL Java_io_apisense_sting_network_netsense_NetsenseService_isNumericAddress(JNIEnv *env, jclass type, jstring ip_) {
+JNIEXPORT jboolean JNICALL Java_io_apisense_sting_netsense_NetsenseService_isNumericAddress(JNIEnv *env, jclass type, jstring ip_) {
     return Java_eu_faircode_netguard_Util_is_1numeric_1address(env, type, ip_);
 }
