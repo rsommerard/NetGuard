@@ -44,7 +44,6 @@ extern long pcap_file_size;
 
 jclass clsPacket;
 jclass clsAllowed;
-jclass clsRR;
 jclass clsUsage;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -62,9 +61,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     const char *allowed = "io/apisense/sting/netsense/Allowed";
     clsAllowed = jniGlobalRef(env, jniFindClass(env, allowed));
-
-    const char *rr = "io/apisense/sting/netsense/ResourceRecord";
-    clsRR = jniGlobalRef(env, jniFindClass(env, rr));
 
     const char *usage = "io/apisense/sting/netsense/Usage";
     clsUsage = jniGlobalRef(env, jniFindClass(env, usage));
@@ -99,7 +95,6 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
         // log_android(ANDROID_LOG_INFO, "JNI load GetEnv failed");
     } else {
         (*env)->DeleteGlobalRef(env, clsPacket);
-        (*env)->DeleteGlobalRef(env, clsRR);
     }
 }
 
@@ -619,78 +614,6 @@ void handle_in_packet(const struct arguments *args, jobject jpacket) {
 
     if (mselapsed > PROFILE_JNI) {
         // log_android(ANDROID_LOG_WARN, "handle_in_packet %f", mselapsed);
-    }
-
-#endif
-}
-
-static jmethodID midDnsResolved = NULL;
-static jmethodID midInitRR = NULL;
-jfieldID fidQTime = NULL;
-jfieldID fidQName = NULL;
-jfieldID fidAName = NULL;
-jfieldID fidResource = NULL;
-jfieldID fidTTL = NULL;
-
-void dns_resolved(const struct arguments *args,
-                  const char *qname, const char *aname, const char *resource, int ttl) {
-#ifdef PROFILE_JNI
-    float mselapsed;
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-#endif
-
-    jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
-
-    const char *signature = "(Lio/apisense/sting/netsense/ResourceRecord;)V";
-
-    if (midDnsResolved == NULL) {
-        midDnsResolved = jniGetMethodID(args->env, clsService, "dnsResolved", signature);
-    }
-
-    const char *rr = "io/apisense/sting/netsense/ResourceRecord";
-
-    if (midInitRR == NULL) {
-        midInitRR = jniGetMethodID(args->env, clsRR, "<init>", "()V");
-    }
-
-    jobject jrr = jniNewObject(args->env, clsRR, midInitRR, rr);
-
-    if (fidQTime == NULL) {
-        const char *string = "Ljava/lang/String;";
-        fidQTime = jniGetFieldID(args->env, clsRR, "Time", "J");
-        fidQName = jniGetFieldID(args->env, clsRR, "QName", string);
-        fidAName = jniGetFieldID(args->env, clsRR, "AName", string);
-        fidResource = jniGetFieldID(args->env, clsRR, "Resource", string);
-        fidTTL = jniGetFieldID(args->env, clsRR, "TTL", "I");
-    }
-
-    jlong jtime = time(NULL) * 1000LL;
-    jstring jqname = (*args->env)->NewStringUTF(args->env, qname);
-    jstring janame = (*args->env)->NewStringUTF(args->env, aname);
-    jstring jresource = (*args->env)->NewStringUTF(args->env, resource);
-
-    (*args->env)->SetLongField(args->env, jrr, fidQTime, jtime);
-    (*args->env)->SetObjectField(args->env, jrr, fidQName, jqname);
-    (*args->env)->SetObjectField(args->env, jrr, fidAName, janame);
-    (*args->env)->SetObjectField(args->env, jrr, fidResource, jresource);
-    (*args->env)->SetIntField(args->env, jrr, fidTTL, ttl);
-
-    (*args->env)->CallVoidMethod(args->env, args->instance, midDnsResolved, jrr);
-    jniCheckException(args->env);
-
-    (*args->env)->DeleteLocalRef(args->env, jresource);
-    (*args->env)->DeleteLocalRef(args->env, janame);
-    (*args->env)->DeleteLocalRef(args->env, jqname);
-    (*args->env)->DeleteLocalRef(args->env, jrr);
-    (*args->env)->DeleteLocalRef(args->env, clsService);
-
-#ifdef PROFILE_JNI
-    gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
-
-    if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "dns_resolved %f", mselapsed);
     }
 
 #endif

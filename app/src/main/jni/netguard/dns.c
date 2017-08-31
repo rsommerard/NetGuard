@@ -133,7 +133,6 @@ void parse_dns_response(const struct arguments *args, const struct udp_session *
                             inet_ntop(AF_INET6, data + off, rd, sizeof(rd));
                         }
 
-                        dns_resolved(args, qname, name, rd, ttl);
                         // log_android(ANDROID_LOG_DEBUG, "DNS answer %d qname %s qtype %d ttl %d data %s", a, name, qtype, ttl, rd);
 
                     } else {
