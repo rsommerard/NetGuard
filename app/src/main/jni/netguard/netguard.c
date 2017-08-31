@@ -44,7 +44,6 @@ extern long pcap_file_size;
 
 jclass clsPacket;
 jclass clsAllowed;
-jclass clsUsage;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     // log_android(ANDROID_LOG_INFO, "JNI load");
@@ -61,9 +60,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     const char *allowed = "io/apisense/sting/netsense/Allowed";
     clsAllowed = jniGlobalRef(env, jniFindClass(env, allowed));
-
-    const char *usage = "io/apisense/sting/netsense/Usage";
-    clsUsage = jniGlobalRef(env, jniFindClass(env, usage));
 
     // Raise file number limit to maximum
     struct rlimit rlim;
@@ -845,16 +841,6 @@ jobject create_packet(const struct arguments *args,
 
     return jpacket;
 }
-
-jmethodID midInitUsage = NULL;
-jfieldID fidUsageTime = NULL;
-jfieldID fidUsageVersion = NULL;
-jfieldID fidUsageProtocol = NULL;
-jfieldID fidUsageDAddr = NULL;
-jfieldID fidUsageDPort = NULL;
-jfieldID fidUsageUid = NULL;
-jfieldID fidUsageSent = NULL;
-jfieldID fidUsageReceived = NULL;
 
 JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_initNetGuard(JNIEnv *env, jobject instance) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1init(env, instance);
