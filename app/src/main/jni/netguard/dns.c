@@ -150,42 +150,6 @@ void parse_dns_response(const struct arguments *args, const struct udp_session *
                 return;
             }
         }
-
-        if (qcount > 0 && is_domain_blocked(args, qname)) {
-            dns->qr = 1;
-            dns->aa = 0;
-            dns->tc = 0;
-            dns->rd = 0;
-            dns->ra = 0;
-            dns->z = 0;
-            dns->ad = 0;
-            dns->cd = 0;
-            dns->rcode = (uint16_t) args->rcode;
-            dns->ans_count = 0;
-            dns->auth_count = 0;
-            dns->add_count = 0;
-            *datalen = aoff;
-
-            char source[INET6_ADDRSTRLEN + 1];
-            char dest[INET6_ADDRSTRLEN + 1];
-
-            if (u->version == 4) {
-                inet_ntop(AF_INET, &u->saddr.ip4, source, sizeof(source));
-                inet_ntop(AF_INET, &u->daddr.ip4, dest, sizeof(dest));
-            } else {
-                inet_ntop(AF_INET6, &u->saddr.ip6, source, sizeof(source));
-                inet_ntop(AF_INET6, &u->daddr.ip6, dest, sizeof(dest));
-            }
-
-            // Log qname
-            char name[DNS_QNAME_MAX + 40 + 1];
-            sprintf(name, "qtype %d qname %s rcode %d", qtype, qname, dns->rcode);
-            jobject objPacket = create_packet(
-                                    args, u->version, IPPROTO_UDP, "",
-                                    source, ntohs(u->source), dest, ntohs(u->dest),
-                                    name, 0, 0);
-            log_packet(args, objPacket);
-        }
     } else if (acount > 0) {
         // log_android(ANDROID_LOG_WARN, "DNS response qr %d opcode %d qcount %d acount %d", dns->qr, dns->opcode, qcount, acount);
     }

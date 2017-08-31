@@ -557,41 +557,8 @@ int jniCheckException(JNIEnv *env) {
     return 0;
 }
 
-static jmethodID midLogPacket = NULL;
 static jmethodID midHandleInPacket = NULL;
 static jmethodID midHandleOutPacket = NULL;
-
-void log_packet(const struct arguments *args, jobject jpacket) {
-#ifdef PROFILE_JNI
-    float mselapsed;
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-#endif
-
-    jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
-
-    const char *signature = "(Lio/apisense/sting/netsense/Packet;)V";
-
-    if (midLogPacket == NULL) {
-        midLogPacket = jniGetMethodID(args->env, clsService, "logPacket", signature);
-    }
-
-    (*args->env)->CallVoidMethod(args->env, args->instance, midLogPacket, jpacket);
-    jniCheckException(args->env);
-
-    (*args->env)->DeleteLocalRef(args->env, clsService);
-    (*args->env)->DeleteLocalRef(args->env, jpacket);
-
-#ifdef PROFILE_JNI
-    gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
-
-    if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
-    }
-
-#endif
-}
 
 void handle_out_packet(const struct arguments *args, jobject jpacket) {
 #ifdef PROFILE_JNI
@@ -619,7 +586,7 @@ void handle_out_packet(const struct arguments *args, jobject jpacket) {
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "handle_out_packet %f", mselapsed);
     }
 
 #endif
@@ -651,7 +618,7 @@ void handle_in_packet(const struct arguments *args, jobject jpacket) {
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "handle_in_packet %f", mselapsed);
     }
 
 #endif
@@ -723,7 +690,7 @@ void dns_resolved(const struct arguments *args,
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "dns_resolved %f", mselapsed);
     }
 
 #endif
@@ -1027,7 +994,7 @@ void account_usage(const struct arguments *args, jint version, jint protocol,
     mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 
     if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "log_packet %f", mselapsed);
+        // log_android(ANDROID_LOG_WARN, "account_usage %f", mselapsed);
     }
 
 #endif

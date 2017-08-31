@@ -339,22 +339,6 @@ jboolean handle_udp(const struct arguments *args,
 
         if (get_dns_query(args, &cur->udp, data, datalen, &qtype, &qclass, qname) >= 0) {
             // log_android(ANDROID_LOG_DEBUG, "DNS query qtype %d qclass %d name %s", qtype, qclass, qname);
-
-            if (0)
-                if (check_domain(args, &cur->udp, data, datalen, qclass, qtype, qname)) {
-                    // Log qname
-                    char name[DNS_QNAME_MAX + 40 + 1];
-                    sprintf(name, "qtype %d qname %s", qtype, qname);
-                    jobject objPacket = create_packet(
-                                            args, version, IPPROTO_UDP, "",
-                                            source, ntohs(cur->udp.source), dest, ntohs(cur->udp.dest),
-                                            name, 0, 0);
-                    log_packet(args, objPacket);
-
-                    // Session done
-                    cur->udp.state = UDP_FINISHING;
-                    return 0;
-                }
         }
     }
 
