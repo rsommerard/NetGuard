@@ -1058,10 +1058,6 @@ JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_processPc
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1pcap(env, type, name_, record_size, file_size);
 }
 
-JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_initSocks5(JNIEnv *env, jobject instance, jstring addr_, jint port, jstring username_, jstring password_) {
-    return Java_eu_faircode_netguard_ServiceSinkhole_jni_1socks5(env, instance, addr_, port, username_, password_);
-}
-
 JNIEXPORT void JNICALL Java_io_apisense_sting_netsense_NetsenseService_done(JNIEnv *env, jobject instance) {
     return Java_eu_faircode_netguard_ServiceSinkhole_jni_1done(env, instance);
 }
