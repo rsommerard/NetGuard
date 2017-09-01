@@ -80,11 +80,6 @@ struct arguments {
     jint rcode;
 };
 
-struct allowed {
-    char raddr[INET6_ADDRSTRLEN + 1];
-    uint16_t rport; // host notation
-};
-
 struct segment {
     uint32_t seq;
     uint16_t len;
@@ -314,8 +309,6 @@ void *handle_events(void *a);
 
 void report_exit(const struct arguments *args, const char *fmt, ...);
 
-void check_allowed(const struct arguments *args);
-
 void init(const struct arguments *args);
 
 void clear();
@@ -393,7 +386,7 @@ void block_udp(const struct arguments *args,
 jboolean handle_udp(const struct arguments *args,
                     const uint8_t *pkt, size_t length,
                     const uint8_t *payload,
-                    int uid, struct allowed *redirect,
+                    int uid,
                     const int epoll_fd);
 
 int get_dns_query(const struct arguments *args, const struct udp_session *u,
@@ -412,7 +405,7 @@ void clear_tcp_data(struct tcp_session *cur);
 jboolean handle_tcp(const struct arguments *args,
                     const uint8_t *pkt, size_t length,
                     const uint8_t *payload,
-                    int uid, int allowed, struct allowed *redirect,
+                    int uid,
                     const int epoll_fd);
 
 void queue_tcp(const struct arguments *args,
@@ -423,10 +416,10 @@ void queue_tcp(const struct arguments *args,
 int open_icmp_socket(const struct arguments *args, const struct icmp_session *cur);
 
 int open_udp_socket(const struct arguments *args,
-                    const struct udp_session *cur, const struct allowed *redirect);
+                    const struct udp_session *cur);
 
 int open_tcp_socket(const struct arguments *args,
-                    const struct tcp_session *cur, const struct allowed *redirect);
+                    const struct tcp_session *cur);
 
 int32_t get_local_port(const int sock);
 
@@ -489,8 +482,6 @@ void handle_out_packet(const struct arguments *args, jobject jpacket);
 
 void handle_in_packet(const struct arguments *args, jobject jpacket);
 
-struct allowed *is_address_allowed(const struct arguments *args, jobject objPacket);
-
 jobject create_packet(const struct arguments *args,
                       jint version,
                       jint protocol,
@@ -500,8 +491,7 @@ jobject create_packet(const struct arguments *args,
                       const char *dest,
                       jint dport,
                       const char *data,
-                      jint uid,
-                      jboolean allowed);
+                      jint uid);
 
 void write_pcap_hdr();
 

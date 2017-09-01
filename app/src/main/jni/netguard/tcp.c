@@ -619,7 +619,7 @@ void check_tcp_socket(const struct arguments *args,
 jboolean handle_tcp(const struct arguments *args,
                     const uint8_t *pkt, size_t length,
                     const uint8_t *payload,
-                    int uid, int allowed, struct allowed *redirect,
+                    int uid,
                     const int epoll_fd) {
     // Get headers
     const uint8_t version = (*pkt) >> 4;
@@ -780,7 +780,7 @@ jboolean handle_tcp(const struct arguments *args,
             }
 
             // Open socket
-            s->socket = open_tcp_socket(args, &s->tcp, redirect);
+            s->socket = open_tcp_socket(args, &s->tcp);
 
             if (s->socket < 0) {
                 // Remote might retry
@@ -803,11 +803,6 @@ jboolean handle_tcp(const struct arguments *args,
 
             s->next = ng_session;
             ng_session = s;
-
-            if (!allowed) {
-                // log_android(ANDROID_LOG_WARN, "%s resetting blocked session", packet);
-                write_rst(args, &s->tcp);
-            }
         } else {
             // log_android(ANDROID_LOG_WARN, "%s unknown session", packet);
 
@@ -1039,18 +1034,14 @@ void queue_tcp(const struct arguments *args,
 }
 
 int open_tcp_socket(const struct arguments *args,
-                    const struct tcp_session *cur, const struct allowed *redirect) {
+                    const struct tcp_session *cur) {
     int sock;
     int version;
 
-    if (redirect == NULL) {
-        if (*socks5_addr && socks5_port) {
-            version = (strstr(socks5_addr, ":") == NULL ? 4 : 6);
-        } else {
-            version = cur->version;
-        }
+    if (*socks5_addr && socks5_port) {
+        version = (strstr(socks5_addr, ":") == NULL ? 4 : 6);
     } else {
-        version = (strstr(redirect->raddr, ":") == NULL ? 4 : 6);
+        version = cur->version;
     }
 
     // Get TCP socket
@@ -1076,41 +1067,27 @@ int open_tcp_socket(const struct arguments *args,
     struct sockaddr_in addr4;
     struct sockaddr_in6 addr6;
 
-    if (redirect == NULL) {
-        if (*socks5_addr && socks5_port) {
-            // log_android(ANDROID_LOG_WARN, "TCP%d SOCKS5 to %s/%u", version, socks5_addr, socks5_port);
-
-            if (version == 4) {
-                addr4.sin_family = AF_INET;
-                inet_pton(AF_INET, socks5_addr, &addr4.sin_addr);
-                addr4.sin_port = htons(socks5_port);
-            } else {
-                addr6.sin6_family = AF_INET6;
-                inet_pton(AF_INET6, socks5_addr, &addr6.sin6_addr);
-                addr6.sin6_port = htons(socks5_port);
-            }
-        } else {
-            if (version == 4) {
-                addr4.sin_family = AF_INET;
-                addr4.sin_addr.s_addr = (__be32) cur->daddr.ip4;
-                addr4.sin_port = cur->dest;
-            } else {
-                addr6.sin6_family = AF_INET6;
-                memcpy(&addr6.sin6_addr, &cur->daddr.ip6, 16);
-                addr6.sin6_port = cur->dest;
-            }
-        }
-    } else {
-        // log_android(ANDROID_LOG_WARN, "TCP%d redirect to %s/%u", version, redirect->raddr, redirect->rport);
+    if (*socks5_addr && socks5_port) {
+        // log_android(ANDROID_LOG_WARN, "TCP%d SOCKS5 to %s/%u", version, socks5_addr, socks5_port);
 
         if (version == 4) {
             addr4.sin_family = AF_INET;
-            inet_pton(AF_INET, redirect->raddr, &addr4.sin_addr);
-            addr4.sin_port = htons(redirect->rport);
+            inet_pton(AF_INET, socks5_addr, &addr4.sin_addr);
+            addr4.sin_port = htons(socks5_port);
         } else {
             addr6.sin6_family = AF_INET6;
-            inet_pton(AF_INET6, redirect->raddr, &addr6.sin6_addr);
-            addr6.sin6_port = htons(redirect->rport);
+            inet_pton(AF_INET6, socks5_addr, &addr6.sin6_addr);
+            addr6.sin6_port = htons(socks5_port);
+        }
+    } else {
+        if (version == 4) {
+            addr4.sin_family = AF_INET;
+            addr4.sin_addr.s_addr = (__be32) cur->daddr.ip4;
+            addr4.sin_port = cur->dest;
+        } else {
+            addr6.sin6_family = AF_INET6;
+            memcpy(&addr6.sin6_addr, &cur->daddr.ip6, 16);
+            addr6.sin6_port = cur->dest;
         }
     }
 
@@ -1332,7 +1309,7 @@ ssize_t write_tcp(const struct arguments *args, const struct tcp_session *cur,
 
     // log_android(ANDROID_LOG_INFO, "write_tcp");
     // source <-> dest
-    jobject objPacket = create_packet(args, cur->version, IPPROTO_TCP, pflags, dest, pdport, source, psport, "", cur->uid, 1);
+    jobject objPacket = create_packet(args, cur->version, IPPROTO_TCP, pflags, dest, pdport, source, psport, "", cur->uid);
     handle_in_packet(args, objPacket);
 
     ssize_t res = write(args->tun, buffer, len);

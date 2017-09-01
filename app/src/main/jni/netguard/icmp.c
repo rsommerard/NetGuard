@@ -369,7 +369,7 @@ ssize_t write_icmp(const struct arguments *args, const struct icmp_session *cur,
     int psport = ntohs(icmp->icmp_id);
     int pdport = ntohs(icmp->icmp_id);
     // source <-> dest
-    jobject objPacket = create_packet(args, cur->version, pprotocol, "", dest, pdport, source, psport, "", cur->uid, 1);
+    jobject objPacket = create_packet(args, cur->version, pprotocol, "", dest, pdport, source, psport, "", cur->uid);
     handle_in_packet(args, objPacket);
 
     ssize_t res = write(args->tun, buffer, len);

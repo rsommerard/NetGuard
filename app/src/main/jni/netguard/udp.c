@@ -233,7 +233,7 @@ void block_udp(const struct arguments *args,
 jboolean handle_udp(const struct arguments *args,
                     const uint8_t *pkt, size_t length,
                     const uint8_t *payload,
-                    int uid, struct allowed *redirect,
+                    int uid,
                     const int epoll_fd) {
     // Get headers
     const uint8_t version = (*pkt) >> 4;
@@ -278,13 +278,7 @@ jboolean handle_udp(const struct arguments *args,
         s->udp.uid = uid;
         s->udp.version = version;
 
-        int rversion;
-
-        if (redirect == NULL) {
-            rversion = s->udp.version;
-        } else {
-            rversion = (strstr(redirect->raddr, ":") == NULL ? 4 : 6);
-        }
+        int rversion = s->udp.version;
 
         s->udp.mss = (uint16_t) (rversion == 4 ? UDP4_MAXMSG : UDP6_MAXMSG);
 
@@ -305,7 +299,7 @@ jboolean handle_udp(const struct arguments *args,
         s->next = NULL;
 
         // Open UDP socket
-        s->socket = open_udp_socket(args, &s->udp, redirect);
+        s->socket = open_udp_socket(args, &s->udp);
 
         if (s->socket < 0) {
             free(s);
@@ -351,35 +345,20 @@ jboolean handle_udp(const struct arguments *args,
 
     cur->udp.time = time(NULL);
 
-    int rversion;
+
     struct sockaddr_in addr4;
     struct sockaddr_in6 addr6;
 
-    if (redirect == NULL) {
-        rversion = cur->udp.version;
+    int rversion = cur->udp.version;
 
-        if (cur->udp.version == 4) {
-            addr4.sin_family = AF_INET;
-            addr4.sin_addr.s_addr = (__be32) cur->udp.daddr.ip4;
-            addr4.sin_port = cur->udp.dest;
-        } else {
-            addr6.sin6_family = AF_INET6;
-            memcpy(&addr6.sin6_addr, &cur->udp.daddr.ip6, 16);
-            addr6.sin6_port = cur->udp.dest;
-        }
+    if (cur->udp.version == 4) {
+        addr4.sin_family = AF_INET;
+        addr4.sin_addr.s_addr = (__be32) cur->udp.daddr.ip4;
+        addr4.sin_port = cur->udp.dest;
     } else {
-        rversion = (strstr(redirect->raddr, ":") == NULL ? 4 : 6);
-        // log_android(ANDROID_LOG_WARN, "UDP%d redirect to %s/%u", rversion, redirect->raddr, redirect->rport);
-
-        if (rversion == 4) {
-            addr4.sin_family = AF_INET;
-            inet_pton(AF_INET, redirect->raddr, &addr4.sin_addr);
-            addr4.sin_port = htons(redirect->rport);
-        } else {
-            addr6.sin6_family = AF_INET6;
-            inet_pton(AF_INET6, redirect->raddr, &addr6.sin6_addr);
-            addr6.sin6_port = htons(redirect->rport);
-        }
+        addr6.sin6_family = AF_INET6;
+        memcpy(&addr6.sin6_addr, &cur->udp.daddr.ip6, 16);
+        addr6.sin6_port = cur->udp.dest;
     }
 
     if (sendto(cur->socket, data, (socklen_t) datalen, MSG_NOSIGNAL, (const struct sockaddr *) (rversion == 4 ? &addr4 : &addr6), (socklen_t) (rversion == 4 ? sizeof(addr4) : sizeof(addr6))) != datalen) {
@@ -397,15 +376,11 @@ jboolean handle_udp(const struct arguments *args,
 }
 
 int open_udp_socket(const struct arguments *args,
-                    const struct udp_session *cur, const struct allowed *redirect) {
+                    const struct udp_session *cur) {
     int sock;
     int version;
 
-    if (redirect == NULL) {
-        version = cur->version;
-    } else {
-        version = (strstr(redirect->raddr, ":") == NULL ? 4 : 6);
-    }
+    version = cur->version;
 
     // Get UDP socket
     sock = socket(version == 4 ? PF_INET : PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -559,7 +534,7 @@ ssize_t write_udp(const struct arguments *args, const struct udp_session *cur, u
     int psport = ntohs(udp->source);
     int pdport = ntohs(udp->dest);
     // source <-> dest
-    jobject objPacket = create_packet(args, cur->version, IPPROTO_UDP, "", dest, pdport, source, psport, "", cur->uid, 1);
+    jobject objPacket = create_packet(args, cur->version, IPPROTO_UDP, "", dest, pdport, source, psport, "", cur->uid);
     handle_in_packet(args, objPacket);
 
     ssize_t res = write(args->tun, buffer, len);

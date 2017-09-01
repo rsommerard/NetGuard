@@ -83,9 +83,6 @@ void *handle_events(void *a) {
         log_android(ANDROID_LOG_WARN, "getrlimit soft %d hard %d max sessions %d", rlim.rlim_cur, rlim.rlim_max, maxsessions);
     }
 
-    // Terminate existing sessions not allowed anymore
-    check_allowed(args);
-
     int stopping = 0;
 
     // Open epoll file
@@ -336,95 +333,3 @@ void *handle_events(void *a) {
     thread_id = 0;
     return NULL;
 }
-
-void check_allowed(const struct arguments *args) {
-    char source[INET6_ADDRSTRLEN + 1];
-    char dest[INET6_ADDRSTRLEN + 1];
-
-    struct ng_session *l = NULL;
-    struct ng_session *s = ng_session;
-
-    while (s != NULL) {
-        if (s->protocol == IPPROTO_ICMP || s->protocol == IPPROTO_ICMPV6) {
-            if (!s->icmp.stop) {
-                if (s->icmp.version == 4) {
-                    inet_ntop(AF_INET, &s->icmp.saddr.ip4, source, sizeof(source));
-                    inet_ntop(AF_INET, &s->icmp.daddr.ip4, dest, sizeof(dest));
-                } else {
-                    inet_ntop(AF_INET6, &s->icmp.saddr.ip6, source, sizeof(source));
-                    inet_ntop(AF_INET6, &s->icmp.daddr.ip6, dest, sizeof(dest));
-                }
-
-                jobject objPacket = create_packet(
-                                        args, s->icmp.version, IPPROTO_ICMP, "",
-                                        source, 0, dest, 0, "", s->icmp.uid, 0);
-
-                if (is_address_allowed(args, objPacket) == NULL) {
-                    s->icmp.stop = 1;
-                    // log_android(ANDROID_LOG_WARN, "ICMP terminate %d uid %d", s->socket, s->icmp.uid);
-                }
-            }
-
-        } else if (s->protocol == IPPROTO_UDP) {
-            if (s->udp.state == UDP_ACTIVE) {
-                if (s->udp.version == 4) {
-                    inet_ntop(AF_INET, &s->udp.saddr.ip4, source, sizeof(source));
-                    inet_ntop(AF_INET, &s->udp.daddr.ip4, dest, sizeof(dest));
-                } else {
-                    inet_ntop(AF_INET6, &s->udp.saddr.ip6, source, sizeof(source));
-                    inet_ntop(AF_INET6, &s->udp.daddr.ip6, dest, sizeof(dest));
-                }
-
-                jobject objPacket = create_packet(
-                                        args, s->udp.version, IPPROTO_UDP, "",
-                                        source, ntohs(s->udp.source), dest, ntohs(s->udp.dest), "", s->udp.uid, 0);
-
-                if (is_address_allowed(args, objPacket) == NULL) {
-                    s->udp.state = UDP_FINISHING;
-                    // log_android(ANDROID_LOG_WARN, "UDP terminate session socket %d uid %d", s->socket, s->udp.uid);
-                }
-            } else if (s->udp.state == UDP_BLOCKED) {
-                // log_android(ANDROID_LOG_WARN, "UDP remove blocked session uid %d", s->udp.uid);
-
-                if (l == NULL) {
-                    ng_session = s->next;
-                } else {
-                    l->next = s->next;
-                }
-
-                struct ng_session *c = s;
-
-                s = s->next;
-
-                free(c);
-
-                continue;
-            }
-
-        } else if (s->protocol == IPPROTO_TCP) {
-            if (s->tcp.state != TCP_CLOSING && s->tcp.state != TCP_CLOSE) {
-                if (s->tcp.version == 4) {
-                    inet_ntop(AF_INET, &s->tcp.saddr.ip4, source, sizeof(source));
-                    inet_ntop(AF_INET, &s->tcp.daddr.ip4, dest, sizeof(dest));
-                } else {
-                    inet_ntop(AF_INET6, &s->tcp.saddr.ip6, source, sizeof(source));
-                    inet_ntop(AF_INET6, &s->tcp.daddr.ip6, dest, sizeof(dest));
-                }
-
-                jobject objPacket = create_packet(
-                                        args, s->tcp.version, IPPROTO_TCP, "",
-                                        source, ntohs(s->tcp.source), dest, ntohs(s->tcp.dest), "", s->tcp.uid, 0);
-
-                if (is_address_allowed(args, objPacket) == NULL) {
-                    write_rst(args, &s->tcp);
-                    // log_android(ANDROID_LOG_WARN, "TCP terminate socket %d uid %d", s->socket, s->tcp.uid);
-                }
-            }
-
-        }
-
-        l = s;
-        s = s->next;
-    }
-}
-

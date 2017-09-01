@@ -30,7 +30,6 @@ public class Packet {
     public int dport;
     public String data;
     public int uid;
-    public boolean allowed;
 
     public Packet() {
     }
@@ -45,7 +44,6 @@ public class Packet {
                 ", \"protocol\": " + prtcl + ", \"flags\": " + flgs +
                 ", \"saddr\": " + saddr + ", \"sport\": " + sport +
                 ", \"daddr\": " + daddr + ", \"dport\": " + dport +
-                ", \"data\": " + dt + ", \"uid\": " + uid +
-                ", \"allowed\": " + allowed + " }";
+                ", \"data\": " + dt + ", \"uid\": " + uid + " }";
     }
 }

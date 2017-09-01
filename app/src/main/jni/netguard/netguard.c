@@ -43,7 +43,6 @@ extern long pcap_file_size;
 // JNI
 
 jclass clsPacket;
-jclass clsAllowed;
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     // log_android(ANDROID_LOG_INFO, "JNI load");
@@ -57,9 +56,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     const char *packet = "io/apisense/sting/netsense/Packet";
     clsPacket = jniGlobalRef(env, jniFindClass(env, packet));
-
-    const char *allowed = "io/apisense/sting/netsense/Allowed";
-    clsAllowed = jniGlobalRef(env, jniFindClass(env, allowed));
 
     // Raise file number limit to maximum
     struct rlimit rlim;
@@ -590,70 +586,6 @@ void handle_in_packet(const struct arguments *args, jobject jpacket) {
 #endif
 }
 
-static jmethodID midIsAddressAllowed = NULL;
-jfieldID fidRaddr = NULL;
-jfieldID fidRport = NULL;
-struct allowed allowed;
-
-struct allowed *is_address_allowed(const struct arguments *args, jobject jpacket) {
-#ifdef PROFILE_JNI
-    float mselapsed;
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-#endif
-
-    jclass clsService = (*args->env)->GetObjectClass(args->env, args->instance);
-
-    const char *signature = "(Lio/apisense/sting/netsense/Packet;)Lio/apisense/sting/netsense/Allowed;";
-
-    if (midIsAddressAllowed == NULL) {
-        midIsAddressAllowed = jniGetMethodID(args->env, clsService, "isAddressAllowed", signature);
-    }
-
-    jobject jallowed = (*args->env)->CallObjectMethod(
-                           args->env, args->instance, midIsAddressAllowed, jpacket);
-    jniCheckException(args->env);
-
-    if (jallowed != NULL) {
-        if (fidRaddr == NULL) {
-            const char *string = "Ljava/lang/String;";
-            fidRaddr = jniGetFieldID(args->env, clsAllowed, "raddr", string);
-            fidRport = jniGetFieldID(args->env, clsAllowed, "rport", "I");
-        }
-
-        jstring jraddr = (*args->env)->GetObjectField(args->env, jallowed, fidRaddr);
-
-        if (jraddr == NULL) {
-            *allowed.raddr = 0;
-        } else {
-            const char *raddr = (*args->env)->GetStringUTFChars(args->env, jraddr, NULL);
-            strcpy(allowed.raddr, raddr);
-            (*args->env)->ReleaseStringUTFChars(args->env, jraddr, raddr);
-        }
-
-        allowed.rport = (uint16_t) (*args->env)->GetIntField(args->env, jallowed, fidRport);
-
-        (*args->env)->DeleteLocalRef(args->env, jraddr);
-    }
-
-
-    (*args->env)->DeleteLocalRef(args->env, jpacket);
-    (*args->env)->DeleteLocalRef(args->env, clsService);
-    (*args->env)->DeleteLocalRef(args->env, jallowed);
-
-#ifdef PROFILE_JNI
-    gettimeofday(&end, NULL);
-    mselapsed = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
-
-    if (mselapsed > PROFILE_JNI) {
-        // log_android(ANDROID_LOG_WARN, "is_address_allowed %f", mselapsed);
-    }
-
-#endif
-
-    return (jallowed == NULL ? NULL : &allowed);
-}
-
 jmethodID midInitPacket = NULL;
 
 jfieldID fidTime = NULL;
@@ -666,7 +598,6 @@ jfieldID fidDaddr = NULL;
 jfieldID fidDport = NULL;
 jfieldID fidData = NULL;
 jfieldID fidUid = NULL;
-jfieldID fidAllowed = NULL;
 
 jobject create_packet(const struct arguments *args,
                       jint version,
@@ -677,8 +608,7 @@ jobject create_packet(const struct arguments *args,
                       const char *dest,
                       jint dport,
                       const char *data,
-                      jint uid,
-                      jboolean allowed) {
+                      jint uid) {
     JNIEnv *env = args->env;
 
 #ifdef PROFILE_JNI
@@ -713,7 +643,6 @@ jobject create_packet(const struct arguments *args,
         fidDport = jniGetFieldID(env, clsPacket, "dport", "I");
         fidData = jniGetFieldID(env, clsPacket, "data", string);
         fidUid = jniGetFieldID(env, clsPacket, "uid", "I");
-        fidAllowed = jniGetFieldID(env, clsPacket, "allowed", "Z");
     }
 
     struct timeval tv;
@@ -749,8 +678,6 @@ jobject create_packet(const struct arguments *args,
     (*env)->SetObjectField(env, jpacket, fidData, jdata);
 
     (*env)->SetIntField(env, jpacket, fidUid, uid);
-
-    (*env)->SetBooleanField(env, jpacket, fidAllowed, allowed);
 
     (*env)->DeleteLocalRef(env, jdata);
 
