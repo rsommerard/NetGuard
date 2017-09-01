@@ -314,8 +314,6 @@ void *handle_events(void *a);
 
 void report_exit(const struct arguments *args, const char *fmt, ...);
 
-void report_error(const struct arguments *args, jint error, const char *fmt, ...);
-
 void check_allowed(const struct arguments *args);
 
 void init(const struct arguments *args);
